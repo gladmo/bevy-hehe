@@ -13,7 +13,7 @@ mod orders;
 
 use bevy::prelude::*;
 
-use board::{Board, BoardCell, BoardGrid, CellText, ClickAction, BOARD_COLS, BOARD_ROWS};
+use board::{Board, BoardCell, BoardGrid, CellImage, CellText, ClickAction, BOARD_COLS, BOARD_ROWS};
 use economy::{CoinsLabel, Economy, GemsLabel, LevelLabel, StaminaLabel};
 use items::ItemDatabase;
 use orders::{format_time, OrderItemText, OrderPanel, OrderSubmitButton, OrderTimeText, Orders};
@@ -138,9 +138,16 @@ fn setup_initial_board(mut board: ResMut<Board>) {
 }
 
 /// Build the full UI hierarchy.
-fn setup_ui(mut commands: Commands, mut orders: ResMut<Orders>, db: Res<ItemDatabase>) {
+fn setup_ui(
+    mut commands: Commands,
+    mut orders: ResMut<Orders>,
+    db: Res<ItemDatabase>,
+    asset_server: Res<AssetServer>,
+) {
     commands.spawn(Camera2d);
     orders.fill_orders(&db);
+
+    let font: Handle<Font> = asset_server.load("NotoSansCJK-Regular.ttf");
 
     // Root — full viewport, column layout
     commands
@@ -151,14 +158,14 @@ fn setup_ui(mut commands: Commands, mut orders: ResMut<Orders>, db: Res<ItemData
             ..default()
         })
         .with_children(|root| {
-            spawn_top_bar(root);
-            spawn_main_area(root);
+            spawn_top_bar(root, &font);
+            spawn_main_area(root, &font, &db);
         });
 }
 
 // ── Top bar ───────────────────────────────────────────────────────────────────
 
-fn spawn_top_bar(root: &mut ChildSpawnerCommands) {
+fn spawn_top_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
     root.spawn((
         Node {
             width: percent(100.0),
@@ -176,6 +183,7 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands) {
         bar.spawn((
             Text::new("合合游戏"),
             TextFont {
+                font: font.clone(),
                 font_size: 22.0,
                 ..default()
             },
@@ -183,7 +191,7 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands) {
         ));
 
         // Level
-        spawn_stat_row(bar, "等级  ", LevelLabel, "1", TEXT_MAIN);
+        spawn_stat_row(bar, "等级  ", LevelLabel, "1", TEXT_MAIN, font);
 
         // Stamina
         spawn_stat_row(
@@ -192,6 +200,7 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands) {
             StaminaLabel,
             "100/100",
             Color::srgb(0.40, 0.85, 0.55),
+            font,
         );
 
         // Coins
@@ -201,10 +210,11 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands) {
             CoinsLabel,
             "0",
             Color::srgb(0.95, 0.80, 0.25),
+            font,
         );
 
         // Gems
-        spawn_stat_row(bar, "宝石  ", GemsLabel, "0", Color::srgb(0.55, 0.75, 0.95));
+        spawn_stat_row(bar, "宝石  ", GemsLabel, "0", Color::srgb(0.55, 0.75, 0.95), font);
     });
 }
 
@@ -214,6 +224,7 @@ fn spawn_stat_row<M: Component>(
     marker: M,
     initial: &str,
     value_color: Color,
+    font: &Handle<Font>,
 ) {
     bar.spawn(Node {
         flex_direction: FlexDirection::Row,
@@ -225,6 +236,7 @@ fn spawn_stat_row<M: Component>(
         row.spawn((
             Text::new(label),
             TextFont {
+                font: font.clone(),
                 font_size: 14.0,
                 ..default()
             },
@@ -233,6 +245,7 @@ fn spawn_stat_row<M: Component>(
         row.spawn((
             Text::new(initial),
             TextFont {
+                font: font.clone(),
                 font_size: 16.0,
                 ..default()
             },
@@ -244,7 +257,11 @@ fn spawn_stat_row<M: Component>(
 
 // ── Main area ─────────────────────────────────────────────────────────────────
 
-fn spawn_main_area(root: &mut ChildSpawnerCommands) {
+fn spawn_main_area(
+    root: &mut ChildSpawnerCommands,
+    font: &Handle<Font>,
+    db: &ItemDatabase,
+) {
     root.spawn(Node {
         width: percent(100.0),
         flex_grow: 1.0,
@@ -252,14 +269,18 @@ fn spawn_main_area(root: &mut ChildSpawnerCommands) {
         ..default()
     })
     .with_children(|area| {
-        spawn_board_panel(area);
-        spawn_order_panel(area);
+        spawn_board_panel(area, font, db);
+        spawn_order_panel(area, font);
     });
 }
 
 // ── Board panel ───────────────────────────────────────────────────────────────
 
-fn spawn_board_panel(area: &mut ChildSpawnerCommands) {
+fn spawn_board_panel(
+    area: &mut ChildSpawnerCommands,
+    font: &Handle<Font>,
+    db: &ItemDatabase,
+) {
     area.spawn((
         Node {
             width: px(BOARD_PANEL_W),
@@ -289,18 +310,24 @@ fn spawn_board_panel(area: &mut ChildSpawnerCommands) {
             ))
             .with_children(|grid| {
                 for idx in 0..(BOARD_COLS * BOARD_ROWS) {
-                    spawn_cell(grid, idx);
+                    spawn_cell(grid, idx, font, db);
                 }
             });
     });
 }
 
-fn spawn_cell(grid: &mut ChildSpawnerCommands, idx: usize) {
+fn spawn_cell(
+    grid: &mut ChildSpawnerCommands,
+    idx: usize,
+    font: &Handle<Font>,
+    _db: &ItemDatabase,
+) {
     grid.spawn((
         Button,
         Node {
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
+            flex_direction: FlexDirection::Column,
             border: UiRect::all(px(1.0)),
             border_radius: BorderRadius::all(px(4.0)),
             ..default()
@@ -310,10 +337,24 @@ fn spawn_cell(grid: &mut ChildSpawnerCommands, idx: usize) {
         BoardCell { index: idx },
     ))
     .with_children(|cell| {
+        // Item icon image (hidden by default)
+        cell.spawn((
+            Node {
+                width: px(48.0),
+                height: px(48.0),
+                display: Display::None,
+                ..default()
+            },
+            ImageNode::default(),
+            CellImage { index: idx },
+        ));
+
+        // Item name / level label
         cell.spawn((
             Text::new(""),
             TextFont {
-                font_size: 10.0,
+                font: font.clone(),
+                font_size: 9.0,
                 ..default()
             },
             TextColor(TEXT_MAIN),
@@ -325,7 +366,7 @@ fn spawn_cell(grid: &mut ChildSpawnerCommands, idx: usize) {
 
 // ── Order panel ───────────────────────────────────────────────────────────────
 
-fn spawn_order_panel(area: &mut ChildSpawnerCommands) {
+fn spawn_order_panel(area: &mut ChildSpawnerCommands, font: &Handle<Font>) {
     area.spawn((
         Node {
             flex_grow: 1.0,
@@ -344,6 +385,7 @@ fn spawn_order_panel(area: &mut ChildSpawnerCommands) {
         panel.spawn((
             Text::new("订单"),
             TextFont {
+                font: font.clone(),
                 font_size: 20.0,
                 ..default()
             },
@@ -356,7 +398,7 @@ fn spawn_order_panel(area: &mut ChildSpawnerCommands) {
 
         // Three fixed order slots
         for slot in 0..3usize {
-            spawn_order_slot(panel, slot);
+            spawn_order_slot(panel, slot, font);
         }
 
         // Instructions section
@@ -369,6 +411,7 @@ fn spawn_order_panel(area: &mut ChildSpawnerCommands) {
                  • 点击提交按钮完成订单",
             ),
             TextFont {
+                font: font.clone(),
                 font_size: 11.5,
                 ..default()
             },
@@ -402,6 +445,7 @@ fn spawn_order_panel(area: &mut ChildSpawnerCommands) {
                         msg.spawn((
                             Text::new(""),
                             TextFont {
+                                font: font.clone(),
                                 font_size: 12.0,
                                 ..default()
                             },
@@ -413,7 +457,7 @@ fn spawn_order_panel(area: &mut ChildSpawnerCommands) {
     });
 }
 
-fn spawn_order_slot(panel: &mut ChildSpawnerCommands, slot: usize) {
+fn spawn_order_slot(panel: &mut ChildSpawnerCommands, slot: usize, font: &Handle<Font>) {
     panel
         .spawn((
             Node {
@@ -433,6 +477,7 @@ fn spawn_order_slot(panel: &mut ChildSpawnerCommands, slot: usize) {
             s.spawn((
                 Text::new("（空）"),
                 TextFont {
+                    font: font.clone(),
                     font_size: 14.0,
                     ..default()
                 },
@@ -446,6 +491,7 @@ fn spawn_order_slot(panel: &mut ChildSpawnerCommands, slot: usize) {
             s.spawn((
                 Text::new(""),
                 TextFont {
+                    font: font.clone(),
                     font_size: 12.0,
                     ..default()
                 },
@@ -478,6 +524,7 @@ fn spawn_order_slot(panel: &mut ChildSpawnerCommands, slot: usize) {
                 btn.spawn((
                     Text::new("提交"),
                     TextFont {
+                        font: font.clone(),
                         font_size: 12.0,
                         ..default()
                     },
@@ -684,6 +731,7 @@ fn handle_order_submit(
 fn update_cell_visuals(
     board: Res<Board>,
     db: Res<ItemDatabase>,
+    asset_server: Res<AssetServer>,
     mut cell_query: Query<(
         &BoardCell,
         &Interaction,
@@ -691,6 +739,7 @@ fn update_cell_visuals(
         &mut BorderColor,
     )>,
     mut text_query: Query<(&CellText, &mut Text)>,
+    mut image_query: Query<(&CellImage, &mut Node, &mut ImageNode)>,
 ) {
     for (cell, interaction, mut bg, mut border) in &mut cell_query {
         let idx = cell.index;
@@ -735,12 +784,33 @@ fn update_cell_visuals(
                     } else {
                         ""
                     };
-                    format!("{}\n{}\nLv{}{}", def.emoji, def.name, def.level, tag)
+                    format!("{}\nLv{}{}", def.name, def.level, tag)
                 }
                 None => "?".to_string(),
             },
             None => String::new(),
         };
+    }
+
+    for (ci, mut node, mut img) in &mut image_query {
+        let idx = ci.index;
+        match board.cells[idx].item_id.as_deref() {
+            Some(id) => {
+                if let Some(def) = db.get(id) {
+                    if let Some(icon_path) = def.icon_path {
+                        img.image = asset_server.load(icon_path);
+                        node.display = Display::Flex;
+                    } else {
+                        node.display = Display::None;
+                    }
+                } else {
+                    node.display = Display::None;
+                }
+            }
+            None => {
+                node.display = Display::None;
+            }
+        }
     }
 }
 
