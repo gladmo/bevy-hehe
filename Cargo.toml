@@ -1,6 +1,16 @@
 [package]
 name = "bevy-hehe"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+description = "合合游戏 (HeHe Game) - An ancient Chinese tea house themed merge puzzle game built with Bevy"
+license = "MIT"
 
 [dependencies]
+bevy = { version = "0.18.1", default-features = true }
+rand = "0.8"
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
