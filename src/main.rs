@@ -80,6 +80,11 @@ fn main() {
                 title: "合合游戏 (HeHe Game)".to_string(),
                 resolution: (WINDOW_W, WINDOW_H).into(),
                 resizable: false,
+                // On WASM, fit into the browser canvas rather than opening a new window.
+                #[cfg(target_arch = "wasm32")]
+                canvas: Some("#bevy-canvas".to_string()),
+                #[cfg(target_arch = "wasm32")]
+                fit_canvas_to_parent: true,
                 ..default()
             }),
             ..default()

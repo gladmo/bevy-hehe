@@ -58,6 +58,12 @@
 | Bevy | 0.18.1 | 游戏引擎 |
 | rand | 0.8 | 随机数生成 |
 
+## 在线试玩
+
+> 游戏已部署到 GitHub Pages，可直接在浏览器中游玩（无需安装任何软件）：
+>
+> **https://gladmo.github.io/bevy-hehe/**
+
 ## 本地运行
 
 ```bash
@@ -69,6 +75,32 @@ cargo run
 
 # 优化构建
 cargo run --release
+```
+
+## WASM 构建（本地）
+
+```bash
+# 添加 WASM 编译目标
+rustup target add wasm32-unknown-unknown
+
+# 安装 wasm-bindgen-cli（版本须与 Cargo.lock 中一致）
+WASM_BINDGEN_VERSION=$(grep -A1 'name = "wasm-bindgen"' Cargo.lock | grep version | head -1 | sed 's/.*"\(.*\)".*/\1/')
+cargo install wasm-bindgen-cli --version "${WASM_BINDGEN_VERSION}" --locked
+
+# 编译为 WASM
+cargo build --profile wasm-release --target wasm32-unknown-unknown
+
+# 生成 JS 绑定
+wasm-bindgen --out-dir ./out --target web --no-typescript \
+  target/wasm32-unknown-unknown/wasm-release/bevy-hehe.wasm
+
+# 复制静态资源
+cp index.html ./out/
+cp -r assets ./out/
+
+# 本地预览（需要 HTTP 服务器，浏览器限制 file:// 协议）
+python3 -m http.server 8000 --directory ./out
+# 然后访问 http://localhost:8000
 ```
 
 ## 项目结构
