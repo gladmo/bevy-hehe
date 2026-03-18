@@ -115,12 +115,12 @@ fn main() {
 /// Place the initial items on the board.
 fn setup_initial_board(mut board: ResMut<Board>) {
     // One of each generator in the top row
-    board.place(Board::idx(0, 0), "poultry_1");  // 老母鸡 (auto)
-    board.place(Board::idx(1, 0), "teapot_1");   // 茶壶
-    board.place(Board::idx(2, 0), "basket_1");   // 食篓
+    board.place(Board::idx(0, 0), "poultry_1"); // 老母鸡 (auto)
+    board.place(Board::idx(1, 0), "teapot_1"); // 茶壶
+    board.place(Board::idx(2, 0), "basket_1"); // 食篓
     board.place(Board::idx(3, 0), "craftBox_1"); // 手作盒
-    board.place(Board::idx(4, 0), "dresser_1");  // 妆奁
-    board.place(Board::idx(5, 0), "loom_1");     // 织布机
+    board.place(Board::idx(4, 0), "dresser_1"); // 妆奁
+    board.place(Board::idx(5, 0), "loom_1"); // 织布机
 
     // Starter child items for immediate play
     board.place(Board::idx(0, 1), "egg_1");
@@ -138,11 +138,7 @@ fn setup_initial_board(mut board: ResMut<Board>) {
 }
 
 /// Build the full UI hierarchy.
-fn setup_ui(
-    mut commands: Commands,
-    mut orders: ResMut<Orders>,
-    db: Res<ItemDatabase>,
-) {
+fn setup_ui(mut commands: Commands, mut orders: ResMut<Orders>, db: Res<ItemDatabase>) {
     commands.spawn(Camera2d);
     orders.fill_orders(&db);
 
@@ -179,7 +175,10 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands) {
         // Game title
         bar.spawn((
             Text::new("合合游戏"),
-            TextFont { font_size: 22.0, ..default() },
+            TextFont {
+                font_size: 22.0,
+                ..default()
+            },
             TextColor(ACCENT),
         ));
 
@@ -205,13 +204,7 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands) {
         );
 
         // Gems
-        spawn_stat_row(
-            bar,
-            "宝石  ",
-            GemsLabel,
-            "0",
-            Color::srgb(0.55, 0.75, 0.95),
-        );
+        spawn_stat_row(bar, "宝石  ", GemsLabel, "0", Color::srgb(0.55, 0.75, 0.95));
     });
 }
 
@@ -231,12 +224,18 @@ fn spawn_stat_row<M: Component>(
     .with_children(|row| {
         row.spawn((
             Text::new(label),
-            TextFont { font_size: 14.0, ..default() },
+            TextFont {
+                font_size: 14.0,
+                ..default()
+            },
             TextColor(TEXT_MUTED),
         ));
         row.spawn((
             Text::new(initial),
-            TextFont { font_size: 16.0, ..default() },
+            TextFont {
+                font_size: 16.0,
+                ..default()
+            },
             TextColor(value_color),
             marker,
         ));
@@ -313,7 +312,10 @@ fn spawn_cell(grid: &mut ChildSpawnerCommands, idx: usize) {
     .with_children(|cell| {
         cell.spawn((
             Text::new(""),
-            TextFont { font_size: 10.0, ..default() },
+            TextFont {
+                font_size: 10.0,
+                ..default()
+            },
             TextColor(TEXT_MAIN),
             TextLayout::new_with_justify(Justify::Center),
             CellText { index: idx },
@@ -341,9 +343,15 @@ fn spawn_order_panel(area: &mut ChildSpawnerCommands) {
         // Title
         panel.spawn((
             Text::new("订单"),
-            TextFont { font_size: 20.0, ..default() },
+            TextFont {
+                font_size: 20.0,
+                ..default()
+            },
             TextColor(ACCENT),
-            Node { margin: UiRect::bottom(px(4.0)), ..default() },
+            Node {
+                margin: UiRect::bottom(px(4.0)),
+                ..default()
+            },
         ));
 
         // Three fixed order slots
@@ -360,9 +368,15 @@ fn spawn_order_panel(area: &mut ChildSpawnerCommands) {
                  • 选中后点空格移动棋子\n\
                  • 点击提交按钮完成订单",
             ),
-            TextFont { font_size: 11.5, ..default() },
+            TextFont {
+                font_size: 11.5,
+                ..default()
+            },
             TextColor(TEXT_MUTED),
-            Node { margin: UiRect::top(px(8.0)), ..default() },
+            Node {
+                margin: UiRect::top(px(8.0)),
+                ..default()
+            },
         ));
 
         // Message bar (pushed to bottom with flex_grow)
@@ -387,7 +401,10 @@ fn spawn_order_panel(area: &mut ChildSpawnerCommands) {
                     .with_children(|msg| {
                         msg.spawn((
                             Text::new(""),
-                            TextFont { font_size: 12.0, ..default() },
+                            TextFont {
+                                font_size: 12.0,
+                                ..default()
+                            },
                             TextColor(TEXT_MAIN),
                             MessageLabel,
                         ));
@@ -415,17 +432,27 @@ fn spawn_order_slot(panel: &mut ChildSpawnerCommands, slot: usize) {
             // Item description
             s.spawn((
                 Text::new("（空）"),
-                TextFont { font_size: 14.0, ..default() },
+                TextFont {
+                    font_size: 14.0,
+                    ..default()
+                },
                 TextColor(TEXT_MUTED),
-                OrderItemText { order_id: slot as u32 },
+                OrderItemText {
+                    order_id: slot as u32,
+                },
             ));
 
             // Time remaining
             s.spawn((
                 Text::new(""),
-                TextFont { font_size: 12.0, ..default() },
+                TextFont {
+                    font_size: 12.0,
+                    ..default()
+                },
                 TextColor(TEXT_MUTED),
-                OrderTimeText { order_id: slot as u32 },
+                OrderTimeText {
+                    order_id: slot as u32,
+                },
             ));
 
             // Submit button
@@ -442,13 +469,18 @@ fn spawn_order_slot(panel: &mut ChildSpawnerCommands, slot: usize) {
                 },
                 BackgroundColor(Color::srgb(0.20, 0.20, 0.18)),
                 BorderColor::all(Color::srgb(0.35, 0.30, 0.20)),
-                OrderSubmitButton { order_id: slot as u32 },
+                OrderSubmitButton {
+                    order_id: slot as u32,
+                },
                 SubmitBtn,
             ))
             .with_children(|btn| {
                 btn.spawn((
                     Text::new("提交"),
-                    TextFont { font_size: 12.0, ..default() },
+                    TextFont {
+                        font_size: 12.0,
+                        ..default()
+                    },
                     TextColor(TEXT_MUTED),
                 ));
             });
@@ -527,7 +559,11 @@ fn handle_cell_interaction(
         match action {
             ClickAction::Merged { result, .. } => {
                 if let Some(item) = db.get(&result) {
-                    let hint = if item.is_generator { "（生成器！）" } else { "" };
+                    let hint = if item.is_generator {
+                        "（生成器！）"
+                    } else {
+                        ""
+                    };
                     message.set(format!(
                         "合成成功！{} {} Lv{}{}",
                         item.emoji, item.name, item.level, hint
@@ -555,8 +591,7 @@ fn handle_cell_interaction(
                                 }
                             } else {
                                 // Board full — refund stamina
-                                economy.stamina =
-                                    (economy.stamina + 1).min(economy.max_stamina);
+                                economy.stamina = (economy.stamina + 1).min(economy.max_stamina);
                                 message.set("棋盘已满，无法生成！");
                             }
                         } else {
@@ -572,7 +607,10 @@ fn handle_cell_interaction(
                 if let Some(id) = board.cells[idx].item_id.clone() {
                     if let Some(item) = db.get(&id) {
                         let hint = if item.is_auto_generator {
-                            format!("— 自动生成，{:.0}分钟/次", item.auto_gen_interval_secs / 60.0)
+                            format!(
+                                "— 自动生成，{:.0}分钟/次",
+                                item.auto_gen_interval_secs / 60.0
+                            )
                         } else if item.is_generator {
                             "— 再次点击生成（耗1体力）".to_string()
                         } else if item.merge_result_id.is_some() {
@@ -646,7 +684,12 @@ fn handle_order_submit(
 fn update_cell_visuals(
     board: Res<Board>,
     db: Res<ItemDatabase>,
-    mut cell_query: Query<(&BoardCell, &Interaction, &mut BackgroundColor, &mut BorderColor)>,
+    mut cell_query: Query<(
+        &BoardCell,
+        &Interaction,
+        &mut BackgroundColor,
+        &mut BorderColor,
+    )>,
     mut text_query: Query<(&CellText, &mut Text)>,
 ) {
     for (cell, interaction, mut bg, mut border) in &mut cell_query {
@@ -756,11 +799,21 @@ fn update_economy_ui(
 
 fn update_orders_ui(
     orders: Res<Orders>,
-    mut item_text_q: Query<(&OrderItemText, &mut Text)>,
-    mut time_text_q: Query<(&OrderTimeText, &mut Text)>,
+    mut item_text_q: Query<
+        (&OrderItemText, &mut Text),
+        (Without<OrderTimeText>, Without<SubmitBtn>),
+    >,
+    mut time_text_q: Query<
+        (&OrderTimeText, &mut Text),
+        (Without<OrderItemText>, Without<SubmitBtn>),
+    >,
     mut submit_q: Query<
         (&OrderSubmitButton, &mut BackgroundColor, &mut BorderColor),
-        With<SubmitBtn>,
+        (
+            With<SubmitBtn>,
+            Without<OrderItemText>,
+            Without<OrderTimeText>,
+        ),
     >,
 ) {
     for (slot_cmp, mut text) in &mut item_text_q {
