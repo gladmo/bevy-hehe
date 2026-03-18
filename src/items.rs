@@ -258,13 +258,13 @@ pub fn all_items() -> Vec<ItemDef> {
     items.push(ItemDef::child("lantern_3", ChainType::Lantern, 3, "彩灯笼", "🪔", Some("lantern_4"), lc, Some("item_icon_20503.png")));
     items.push(ItemDef::child("lantern_4", ChainType::Lantern, 4, "宫廷灯", "💡", Some("lantern_5"), lc, Some("item_icon_20504.png")));
     items.push(ItemDef::child("lantern_5", ChainType::Lantern, 5, "宫廷灯", "💡", Some("lantern_6"), lc, Some("item_icon_20505.png")));
-    items.push(ItemDef::child("lantern_6", ChainType::Lantern, 6, "花灯", "🎑", Some("lantern_7"), lc, Some("item_icon_20506.png")));
-    items.push(ItemDef::child("lantern_7", ChainType::Lantern, 7, "花灯", "🎑", Some("lantern_8"), lc, Some("item_icon_20507.png")));
-    items.push(ItemDef::child("lantern_8", ChainType::Lantern, 8, "精品花灯", "✨", Some("lantern_9"), lc, Some("item_icon_20508.png")));
-    items.push(ItemDef::child("lantern_9", ChainType::Lantern, 9, "精品花灯", "✨", Some("lantern_10"), lc, Some("item_icon_20509.png")));
-    items.push(ItemDef::child("lantern_10", ChainType::Lantern, 10, "龙凤花灯", "🔆", Some("lantern_11"), lc, Some("item_icon_20510.png")));
-    items.push(ItemDef::child("lantern_11", ChainType::Lantern, 11, "龙凤花灯", "🔆", Some("lantern_12"), lc, Some("item_icon_20511.png")));
-    items.push(ItemDef::child("lantern_12", ChainType::Lantern, 12, "九龙玉灯", "🌟", None, lc, Some("item_icon_20512.png")));
+    items.push(ItemDef::child("lantern_6", ChainType::Lantern, 6, "宫廷灯", "💡", Some("lantern_7"), lc, Some("item_icon_20506.png")));
+    items.push(ItemDef::child("lantern_7", ChainType::Lantern, 7, "宫廷灯", "💡", Some("lantern_8"), lc, Some("item_icon_20507.png")));
+    items.push(ItemDef::child("lantern_8", ChainType::Lantern, 8, "宫廷灯", "💡", Some("lantern_9"), lc, Some("item_icon_20508.png")));
+    items.push(ItemDef::child("lantern_9", ChainType::Lantern, 9, "宫廷灯", "💡", Some("lantern_10"), lc, Some("item_icon_20509.png")));
+    items.push(ItemDef::child("lantern_10", ChainType::Lantern, 10, "宫廷灯", "💡", Some("lantern_11"), lc, Some("item_icon_20510.png")));
+    items.push(ItemDef::child("lantern_11", ChainType::Lantern, 11, "宫廷灯", "💡", Some("lantern_12"), lc, Some("item_icon_20511.png")));
+    items.push(ItemDef::child("lantern_12", ChainType::Lantern, 12, "九龙玉灯", "🔆", None, lc, Some("item_icon_20512.png")));
 
     // ── 妆奁 (Dresser) generator chain (11 levels) ────────────────────────────
     let drc = (0.85, 0.55, 0.75); // pink/purple

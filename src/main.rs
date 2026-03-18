@@ -159,7 +159,7 @@ fn setup_ui(
         })
         .with_children(|root| {
             spawn_top_bar(root, &font);
-            spawn_main_area(root, &font, &asset_server, &db);
+            spawn_main_area(root, &font, &db);
         });
 }
 
@@ -260,7 +260,6 @@ fn spawn_stat_row<M: Component>(
 fn spawn_main_area(
     root: &mut ChildSpawnerCommands,
     font: &Handle<Font>,
-    asset_server: &AssetServer,
     db: &ItemDatabase,
 ) {
     root.spawn(Node {
@@ -270,7 +269,7 @@ fn spawn_main_area(
         ..default()
     })
     .with_children(|area| {
-        spawn_board_panel(area, font, asset_server, db);
+        spawn_board_panel(area, font, db);
         spawn_order_panel(area, font);
     });
 }
@@ -280,7 +279,6 @@ fn spawn_main_area(
 fn spawn_board_panel(
     area: &mut ChildSpawnerCommands,
     font: &Handle<Font>,
-    asset_server: &AssetServer,
     db: &ItemDatabase,
 ) {
     area.spawn((
@@ -312,7 +310,7 @@ fn spawn_board_panel(
             ))
             .with_children(|grid| {
                 for idx in 0..(BOARD_COLS * BOARD_ROWS) {
-                    spawn_cell(grid, idx, font, asset_server, db);
+                    spawn_cell(grid, idx, font, db);
                 }
             });
     });
@@ -322,7 +320,6 @@ fn spawn_cell(
     grid: &mut ChildSpawnerCommands,
     idx: usize,
     font: &Handle<Font>,
-    asset_server: &AssetServer,
     _db: &ItemDatabase,
 ) {
     grid.spawn((
@@ -348,10 +345,7 @@ fn spawn_cell(
                 display: Display::None,
                 ..default()
             },
-            ImageNode {
-                image: asset_server.load("item_icon_10601.png"),
-                ..default()
-            },
+            ImageNode::default(),
             CellImage { index: idx },
         ));
 
