@@ -232,3 +232,53 @@ pub struct CellImage {
 /// Tag component for the board grid container.
 #[derive(Component, Debug)]
 pub struct BoardGrid;
+
+impl Board {
+    /// Handle a drag-and-drop from `from` to `to`.
+    ///
+    /// Tries to merge if both cells have compatible items, otherwise moves the
+    /// dragged item to an empty target cell. Returns the action taken.
+    pub fn handle_drag(&mut self, from: usize, to: usize, db: &ItemDatabase) -> ClickAction {
+        let from_item = self.cells[from].item_id.clone();
+        let to_item = self.cells[to].item_id.clone();
+
+        // Try merge when both cells are occupied
+        if let (Some(from_id), Some(to_id)) = (&from_item, &to_item) {
+            if db.can_merge(from_id, to_id) {
+                // `can_merge` guarantees `merge_result_id` is Some; guard defensively.
+                let Some(result_id) = db.get(from_id).and_then(|i| i.merge_result_id) else {
+                    return ClickAction::None;
+                };
+                let result_id = result_id.to_string();
+                self.cells[from].item_id = None;
+                self.cells[to].item_id = Some(result_id.clone());
+                self.selected = None;
+                self.dirty = true;
+                return ClickAction::Merged {
+                    source: from,
+                    target: to,
+                    result: result_id,
+                };
+            }
+            // Incompatible items — cancel drag without moving
+            return ClickAction::None;
+        }
+
+        // Move to empty target cell
+        if to_item.is_none() {
+            if let Some(from_id) = from_item {
+                self.cells[from].item_id = None;
+                self.cells[to].item_id = Some(from_id.clone());
+                self.selected = None;
+                self.dirty = true;
+                return ClickAction::Moved {
+                    from,
+                    to,
+                    item: from_id,
+                };
+            }
+        }
+
+        ClickAction::None
+    }
+}
