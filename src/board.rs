@@ -208,18 +208,18 @@ pub enum ClickAction {
         to: usize,
         item: String,
     },
+    Swapped {
+        #[allow(dead_code)]
+        from: usize,
+        #[allow(dead_code)]
+        to: usize,
+    },
     GeneratorActivated(usize, String),
 }
 
 /// Tag component for board cell UI entities.
 #[derive(Component, Debug, Clone)]
 pub struct BoardCell {
-    pub index: usize,
-}
-
-/// Tag component for the text inside a board cell.
-#[derive(Component, Debug, Clone)]
-pub struct CellText {
     pub index: usize,
 }
 
@@ -260,8 +260,14 @@ impl Board {
                     result: result_id,
                 };
             }
-            // Incompatible items — cancel drag without moving
-            return ClickAction::None;
+            // Incompatible items — swap their positions
+            let from_id_owned = from_id.clone();
+            let to_id_owned = to_id.clone();
+            self.cells[from].item_id = Some(to_id_owned);
+            self.cells[to].item_id = Some(from_id_owned);
+            self.selected = None;
+            self.dirty = true;
+            return ClickAction::Swapped { from, to };
         }
 
         // Move to empty target cell

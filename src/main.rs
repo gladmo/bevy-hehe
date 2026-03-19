@@ -13,7 +13,7 @@ mod orders;
 
 use bevy::prelude::*;
 
-use board::{Board, BoardCell, BoardGrid, CellImage, CellText, ClickAction, BOARD_COLS, BOARD_ROWS};
+use board::{Board, BoardCell, BoardGrid, CellImage, ClickAction, BOARD_COLS, BOARD_ROWS};
 use economy::{CoinsLabel, Economy, GemsLabel, LevelLabel, StaminaLabel};
 use items::ItemDatabase;
 use orders::{format_time, OrderItemText, OrderPanel, OrderSubmitButton, OrderTimeText, Orders};
@@ -38,6 +38,7 @@ const BOARD_BG: Color = Color::srgb(0.16, 0.13, 0.10);
 const DETAIL_BAR_BG: Color = Color::srgb(0.11, 0.09, 0.06);
 const ORDER_BG: Color = Color::srgb(0.12, 0.09, 0.07);
 const CELL_EMPTY: Color = Color::srgb(0.20, 0.17, 0.14);
+const CELL_EMPTY_ALT: Color = Color::srgb(0.26, 0.22, 0.17);
 const CELL_HOVERED: Color = Color::srgb(0.32, 0.26, 0.18);
 const CELL_SELECTED: Color = Color::srgb(0.55, 0.45, 0.20);
 const TEXT_MAIN: Color = Color::srgb(0.96, 0.91, 0.78);
@@ -223,7 +224,7 @@ fn setup_ui(
         .with_children(|root| {
             spawn_top_bar(root, &font);
             spawn_order_row(root, &font);
-            spawn_board_grid(root, &font, &db);
+            spawn_board_grid(root);
             spawn_bottom_bar(root, &font);
         });
 
@@ -500,11 +501,7 @@ fn spawn_order_card(panel: &mut ChildSpawnerCommands, slot: usize, font: &Handle
 
 // ── Board grid (full-width, fills remaining space) ────────────────────────────
 
-fn spawn_board_grid(
-    root: &mut ChildSpawnerCommands,
-    font: &Handle<Font>,
-    db: &ItemDatabase,
-) {
+fn spawn_board_grid(root: &mut ChildSpawnerCommands) {
     root.spawn((
         Node {
             display: Display::Grid,
@@ -522,7 +519,7 @@ fn spawn_board_grid(
     ))
     .with_children(|grid| {
         for idx in 0..(BOARD_COLS * BOARD_ROWS) {
-            spawn_cell(grid, idx, font, db);
+            spawn_cell(grid, idx);
         }
     });
 }
@@ -661,12 +658,15 @@ fn spawn_bottom_action_btn(
     });
 }
 
-fn spawn_cell(
-    grid: &mut ChildSpawnerCommands,
-    idx: usize,
-    font: &Handle<Font>,
-    _db: &ItemDatabase,
-) {
+fn spawn_cell(grid: &mut ChildSpawnerCommands, idx: usize) {
+    let col = idx % BOARD_COLS;
+    let row = idx / BOARD_COLS;
+    let cell_bg = if (col + row) % 2 == 0 {
+        CELL_EMPTY
+    } else {
+        CELL_EMPTY_ALT
+    };
+
     grid.spawn((
         Button,
         Node {
@@ -677,7 +677,7 @@ fn spawn_cell(
             border_radius: BorderRadius::all(px(4.0)),
             ..default()
         },
-        BackgroundColor(CELL_EMPTY),
+        BackgroundColor(cell_bg),
         BorderColor::all(Color::srgb(0.25, 0.22, 0.17)),
         BoardCell { index: idx },
     ))
@@ -692,19 +692,6 @@ fn spawn_cell(
             },
             ImageNode::default(),
             CellImage { index: idx },
-        ));
-
-        // Item name / level label
-        cell.spawn((
-            Text::new(""),
-            TextFont {
-                font: font.clone(),
-                font_size: 9.0,
-                ..default()
-            },
-            TextColor(TEXT_MAIN),
-            TextLayout::new_with_justify(Justify::Center),
-            CellText { index: idx },
         ));
     });
 }
@@ -855,6 +842,7 @@ fn handle_cell_interaction(
             ClickAction::Deselected => {
                 message.set("取消选中");
             }
+            ClickAction::Swapped { .. } => {}
             ClickAction::None => {}
         }
     }
@@ -995,6 +983,9 @@ fn handle_drag_input(
                                     message.set(format!("移动了 {} {}", def.emoji, def.name));
                                 }
                             }
+                            ClickAction::Swapped { .. } => {
+                                message.set("已互换位置");
+                            }
                             _ => {}
                         }
                     }
@@ -1042,7 +1033,6 @@ fn update_cell_visuals(
         &mut BackgroundColor,
         &mut BorderColor,
     )>,
-    mut text_query: Query<(&CellText, &mut Text)>,
     mut image_query: Query<(&CellImage, &mut Node, &mut ImageNode)>,
 ) {
     for (cell, interaction, mut bg, mut border) in &mut cell_query {
@@ -1050,6 +1040,14 @@ fn update_cell_visuals(
         let item_id = board.cells[idx].item_id.as_deref();
         let selected = board.selected == Some(idx);
         let is_drag_source = drag.dragging && drag.source == Some(idx);
+
+        let col = idx % BOARD_COLS;
+        let row = idx / BOARD_COLS;
+        let base_empty_bg = if (col + row) % 2 == 0 {
+            CELL_EMPTY
+        } else {
+            CELL_EMPTY_ALT
+        };
 
         *bg = if is_drag_source {
             // Dim the source cell while the piece is being dragged
@@ -1067,10 +1065,10 @@ fn update_cell_visuals(
                     b * 0.45 + 0.05,
                 ))
             } else {
-                BackgroundColor(CELL_EMPTY)
+                BackgroundColor(base_empty_bg)
             }
         } else {
-            BackgroundColor(CELL_EMPTY)
+            BackgroundColor(base_empty_bg)
         };
 
         *border = if is_drag_source {
@@ -1079,26 +1077,6 @@ fn update_cell_visuals(
             BorderColor::all(ACCENT)
         } else {
             BorderColor::all(Color::srgb(0.25, 0.22, 0.17))
-        };
-    }
-
-    for (ct, mut text) in &mut text_query {
-        let idx = ct.index;
-        **text = match board.cells[idx].item_id.as_deref() {
-            Some(id) => match db.get(id) {
-                Some(def) => {
-                    let tag = if def.is_auto_generator {
-                        "[自动]"
-                    } else if def.is_generator {
-                        "[生成]"
-                    } else {
-                        ""
-                    };
-                    format!("{}\nLv{}{}", def.name, def.level, tag)
-                }
-                None => "?".to_string(),
-            },
-            None => String::new(),
         };
     }
 
