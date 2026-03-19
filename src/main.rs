@@ -71,6 +71,27 @@ struct MessageLabel;
 #[derive(Component)]
 struct SubmitBtn;
 
+/// Tracks the state of an in-progress piece drag.
+#[derive(Resource, Default, Debug)]
+struct DragState {
+    /// Board cell index the drag originated from.
+    source: Option<usize>,
+    /// Physical-pixel cursor position when the mouse button was pressed.
+    press_pos: Vec2,
+    /// Latest physical-pixel cursor position (updated every frame while dragging).
+    cursor_phys: Vec2,
+    /// Latest logical-pixel cursor position (used to position the ghost node).
+    cursor_logical: Vec2,
+    /// Whether the cursor has moved far enough to be considered a real drag.
+    dragging: bool,
+    /// Asset path of the icon shown in the drag ghost.
+    icon_path: Option<&'static str>,
+}
+
+/// Tag component for the floating drag-ghost UI entity.
+#[derive(Component)]
+struct DragGhost;
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 fn main() {
@@ -96,6 +117,7 @@ fn main() {
         .insert_resource(ItemDatabase::new())
         .insert_resource(AutoGenTimers::default())
         .insert_resource(MessageBar::default())
+        .insert_resource(DragState::default())
         .add_systems(Startup, setup_initial_board)
         .add_systems(Startup, setup_ui.after(setup_initial_board))
         .add_systems(
@@ -104,9 +126,11 @@ fn main() {
                 tick_economy,
                 tick_orders,
                 tick_auto_generators,
+                handle_drag_input,
                 handle_cell_interaction,
                 handle_order_submit,
-                update_cell_visuals,
+                update_drag_ghost.after(handle_drag_input),
+                update_cell_visuals.after(handle_drag_input),
                 update_economy_ui,
                 update_orders_ui,
                 update_message_bar,
@@ -166,6 +190,24 @@ fn setup_ui(
             spawn_top_bar(root, &font);
             spawn_main_area(root, &font, &db);
         });
+
+    // Drag ghost — root-level absolute node that floats above all other UI.
+    // `Pickable::IGNORE` ensures it never blocks pointer events on cells below it.
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            width: Val::Px(56.0),
+            height: Val::Px(56.0),
+            left: Val::Px(0.0),
+            top: Val::Px(0.0),
+            display: Display::None,
+            ..default()
+        },
+        ImageNode::default(),
+        ZIndex(1000),
+        Pickable::IGNORE,
+        DragGhost,
+    ));
 }
 
 // ── Top bar ───────────────────────────────────────────────────────────────────
@@ -732,9 +774,138 @@ fn handle_order_submit(
     }
 }
 
+// ── Drag-and-drop systems ─────────────────────────────────────────────────────
+
+/// Returns `true` when the physical-pixel `cursor` lies within the UI node described by
+/// `computed` at `transform`.
+fn ui_hit_test(cursor: Vec2, transform: &UiGlobalTransform, computed: &ComputedNode) -> bool {
+    computed.contains_point(*transform, cursor)
+}
+
+/// Handles the full lifecycle of a drag gesture:
+/// press → movement threshold → ghost appears → release → move or merge.
+fn handle_drag_input(
+    mut drag: ResMut<DragState>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    windows: Query<&Window>,
+    mut board: ResMut<Board>,
+    db: Res<ItemDatabase>,
+    mut economy: ResMut<Economy>,
+    mut message: ResMut<MessageBar>,
+    cell_query: Query<(&BoardCell, &UiGlobalTransform, &ComputedNode)>,
+) {
+    let Ok(window) = windows.single() else {
+        return;
+    };
+    // Physical pixels for hit-testing against UiGlobalTransform.
+    let Some(cursor_phys) = window.physical_cursor_position() else {
+        return;
+    };
+    // Logical pixels for positioning the ghost node (Val::Px is logical).
+    let Some(cursor_logical) = window.cursor_position() else {
+        return;
+    };
+
+    // ── Mouse pressed ─────────────────────────────────────────────────────────
+    if mouse.just_pressed(MouseButton::Left) {
+        drag.source = None;
+        drag.dragging = false;
+        for (cell, transform, computed) in &cell_query {
+            if ui_hit_test(cursor_phys, transform, computed) {
+                if let Some(item_id) = board.cells[cell.index].item_id.as_deref() {
+                    if let Some(def) = db.get(item_id) {
+                        drag.source = Some(cell.index);
+                        drag.press_pos = cursor_phys;
+                        drag.cursor_phys = cursor_phys;
+                        drag.cursor_logical = cursor_logical;
+                        drag.icon_path = def.icon_path;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    // ── Track movement ────────────────────────────────────────────────────────
+    if drag.source.is_some() && mouse.pressed(MouseButton::Left) {
+        drag.cursor_phys = cursor_phys;
+        drag.cursor_logical = cursor_logical;
+        if !drag.dragging && cursor_phys.distance(drag.press_pos) > 8.0 {
+            drag.dragging = true;
+        }
+    }
+
+    // ── Mouse released ────────────────────────────────────────────────────────
+    if mouse.just_released(MouseButton::Left) {
+        if drag.dragging {
+            if let Some(src) = drag.source {
+                // Find the cell under the release position
+                let mut target_idx: Option<usize> = None;
+                for (cell, transform, computed) in &cell_query {
+                    if ui_hit_test(cursor_phys, transform, computed) {
+                        target_idx = Some(cell.index);
+                        break;
+                    }
+                }
+
+                if let Some(tgt) = target_idx {
+                    if tgt != src {
+                        let action = board.handle_drag(src, tgt, &db);
+                        match action {
+                            ClickAction::Merged { result, .. } => {
+                                if let Some(item) = db.get(&result) {
+                                    let hint = if item.is_generator { "（生成器！）" } else { "" };
+                                    message.set(format!(
+                                        "合成成功！{} {} Lv{}{}",
+                                        item.emoji, item.name, item.level, hint
+                                    ));
+                                    economy.add_exp(10 * item.level as u64);
+                                }
+                            }
+                            ClickAction::Moved { item, .. } => {
+                                if let Some(def) = db.get(&item) {
+                                    message.set(format!("移动了 {} {}", def.emoji, def.name));
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+        // Always reset drag state on release
+        drag.source = None;
+        drag.dragging = false;
+    }
+}
+
+/// Moves the drag-ghost node to the cursor and loads the correct icon image.
+fn update_drag_ghost(
+    drag: Res<DragState>,
+    asset_server: Res<AssetServer>,
+    mut ghost_q: Query<(&mut Node, &mut ImageNode), With<DragGhost>>,
+) {
+    let Ok((mut node, mut img)) = ghost_q.single_mut() else {
+        return;
+    };
+
+    if drag.dragging {
+        node.display = Display::Flex;
+        // Centre the ghost on the cursor (ghost is 56×56 logical pixels)
+        node.left = Val::Px(drag.cursor_logical.x - 28.0);
+        node.top = Val::Px(drag.cursor_logical.y - 28.0);
+        if let Some(path) = drag.icon_path {
+            img.image = asset_server.load(path);
+        }
+    } else {
+        node.display = Display::None;
+    }
+}
+
 /// Refresh all 63 board cell visuals.
 fn update_cell_visuals(
     board: Res<Board>,
+    drag: Res<DragState>,
     db: Res<ItemDatabase>,
     asset_server: Res<AssetServer>,
     mut cell_query: Query<(
@@ -750,8 +921,12 @@ fn update_cell_visuals(
         let idx = cell.index;
         let item_id = board.cells[idx].item_id.as_deref();
         let selected = board.selected == Some(idx);
+        let is_drag_source = drag.dragging && drag.source == Some(idx);
 
-        *bg = if selected {
+        *bg = if is_drag_source {
+            // Dim the source cell while the piece is being dragged
+            BackgroundColor(Color::srgba(0.30, 0.25, 0.15, 0.45))
+        } else if selected {
             BackgroundColor(CELL_SELECTED)
         } else if *interaction == Interaction::Hovered {
             BackgroundColor(CELL_HOVERED)
@@ -770,7 +945,9 @@ fn update_cell_visuals(
             BackgroundColor(CELL_EMPTY)
         };
 
-        *border = if selected {
+        *border = if is_drag_source {
+            BorderColor::all(Color::srgba(0.88, 0.72, 0.30, 0.50))
+        } else if selected {
             BorderColor::all(ACCENT)
         } else {
             BorderColor::all(Color::srgb(0.25, 0.22, 0.17))
