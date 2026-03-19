@@ -20,28 +20,35 @@ use orders::{format_time, OrderItemText, OrderPanel, OrderSubmitButton, OrderTim
 
 // ── Window ────────────────────────────────────────────────────────────────────
 
-const WINDOW_W: u32 = 1200;
-const WINDOW_H: u32 = 780;
+const WINDOW_W: u32 = 1280;
+const WINDOW_H: u32 = 820;
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 
-const TOP_BAR_H: f32 = 60.0;
-const BOARD_PANEL_W: f32 = 660.0;
+const TOP_BAR_H: f32 = 65.0;
+/// Height of the item-detail bar shown below the board grid.
+const DETAIL_BAR_H: f32 = 85.0;
+const BOARD_PANEL_W: f32 = 670.0;
+const SECONDS_PER_MINUTE: f32 = 60.0;
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 
-const BG: Color = Color::srgb(0.11, 0.09, 0.07);
-const TOP_BAR_BG: Color = Color::srgb(0.08, 0.06, 0.04);
-const BOARD_BG: Color = Color::srgb(0.14, 0.12, 0.09);
-const ORDER_BG: Color = Color::srgb(0.10, 0.08, 0.06);
-const CELL_EMPTY: Color = Color::srgb(0.18, 0.16, 0.13);
-const CELL_HOVERED: Color = Color::srgb(0.30, 0.25, 0.18);
+const BG: Color = Color::srgb(0.13, 0.10, 0.07);
+const TOP_BAR_BG: Color = Color::srgb(0.09, 0.07, 0.04);
+const BOARD_BG: Color = Color::srgb(0.16, 0.13, 0.10);
+const DETAIL_BAR_BG: Color = Color::srgb(0.11, 0.09, 0.06);
+const ORDER_BG: Color = Color::srgb(0.12, 0.09, 0.07);
+const CELL_EMPTY: Color = Color::srgb(0.20, 0.17, 0.14);
+const CELL_HOVERED: Color = Color::srgb(0.32, 0.26, 0.18);
 const CELL_SELECTED: Color = Color::srgb(0.55, 0.45, 0.20);
 const TEXT_MAIN: Color = Color::srgb(0.96, 0.91, 0.78);
 const TEXT_MUTED: Color = Color::srgb(0.65, 0.60, 0.48);
 const ACCENT: Color = Color::srgb(0.88, 0.72, 0.30);
-const ORDER_SLOT_BG: Color = Color::srgb(0.16, 0.13, 0.10);
+const ACCENT_GREEN: Color = Color::srgb(0.40, 0.80, 0.45);
+const ORDER_SLOT_BG: Color = Color::srgb(0.18, 0.14, 0.10);
 const ORDER_SUBMIT_BG: Color = Color::srgb(0.25, 0.45, 0.20);
+/// Semi-transparent dark overlay used on icon/card backgrounds.
+const OVERLAY_ALPHA: f32 = 0.25;
 
 // ── Resources ─────────────────────────────────────────────────────────────────
 
@@ -92,6 +99,24 @@ struct DragState {
 #[derive(Component)]
 struct DragGhost;
 
+/// Tag for the item-detail bar item icon.
+#[derive(Component)]
+struct DetailIcon;
+
+/// Tag for the item-detail bar primary text (name + level).
+#[derive(Component)]
+struct DetailName;
+
+/// Tag for the item-detail bar secondary text (hint / action description).
+#[derive(Component)]
+struct DetailHint;
+
+/// Tag for the order icon image in each order slot.
+#[derive(Component)]
+struct OrderIcon {
+    order_id: u32,
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 fn main() {
@@ -133,6 +158,8 @@ fn main() {
                 update_cell_visuals.after(handle_drag_input),
                 update_economy_ui,
                 update_orders_ui,
+                update_order_icons,
+                update_item_detail_bar,
                 update_message_bar,
             ),
         )
@@ -219,53 +246,70 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
             height: px(TOP_BAR_H),
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Center,
-            justify_content: JustifyContent::SpaceAround,
-            padding: UiRect::axes(px(16.0), px(8.0)),
+            justify_content: JustifyContent::SpaceBetween,
+            padding: UiRect::axes(px(20.0), px(8.0)),
+            border: UiRect::bottom(px(2.0)),
             ..default()
         },
         BackgroundColor(TOP_BAR_BG),
+        BorderColor::all(Color::srgb(0.35, 0.28, 0.18)),
     ))
     .with_children(|bar| {
-        // Game title
+        // Left: Game title
         bar.spawn((
-            Text::new("合合游戏"),
+            Text::new("🏮 合合游戏"),
             TextFont {
                 font: font.clone(),
-                font_size: 22.0,
+                font_size: 24.0,
                 ..default()
             },
             TextColor(ACCENT),
         ));
 
-        // Level
-        spawn_stat_row(bar, "等级  ", LevelLabel, "1", TEXT_MAIN, font);
+        // Center: Stats row
+        bar.spawn(Node {
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            column_gap: px(24.0),
+            ..default()
+        })
+        .with_children(|stats| {
+            spawn_stat_card(stats, "等级", LevelLabel, "1", TEXT_MAIN, font);
+            spawn_stat_card(
+                stats,
+                "⚡体力",
+                StaminaLabel,
+                "100/100",
+                ACCENT_GREEN,
+                font,
+            );
+            spawn_stat_card(
+                stats,
+                "💰铜板",
+                CoinsLabel,
+                "0",
+                Color::srgb(0.95, 0.80, 0.25),
+                font,
+            );
+            spawn_stat_card(
+                stats,
+                "💎宝石",
+                GemsLabel,
+                "0",
+                Color::srgb(0.55, 0.75, 0.95),
+                font,
+            );
+        });
 
-        // Stamina
-        spawn_stat_row(
-            bar,
-            "体力  ",
-            StaminaLabel,
-            "100/100",
-            Color::srgb(0.40, 0.85, 0.55),
-            font,
-        );
-
-        // Coins
-        spawn_stat_row(
-            bar,
-            "铜板  ",
-            CoinsLabel,
-            "0",
-            Color::srgb(0.95, 0.80, 0.25),
-            font,
-        );
-
-        // Gems
-        spawn_stat_row(bar, "宝石  ", GemsLabel, "0", Color::srgb(0.55, 0.75, 0.95), font);
+        // Right: placeholder to balance the flex layout
+        bar.spawn(Node {
+            width: px(100.0),
+            ..default()
+        });
     });
 }
 
-fn spawn_stat_row<M: Component>(
+fn spawn_stat_card<M: Component>(
     bar: &mut ChildSpawnerCommands,
     label: &str,
     marker: M,
@@ -273,23 +317,31 @@ fn spawn_stat_row<M: Component>(
     value_color: Color,
     font: &Handle<Font>,
 ) {
-    bar.spawn(Node {
-        flex_direction: FlexDirection::Row,
-        align_items: AlignItems::Center,
-        column_gap: px(4.0),
-        ..default()
-    })
-    .with_children(|row| {
-        row.spawn((
+    bar.spawn((
+        Node {
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
+            padding: UiRect::axes(px(10.0), px(4.0)),
+            border: UiRect::all(px(1.0)),
+            border_radius: BorderRadius::all(px(6.0)),
+            row_gap: px(2.0),
+            min_width: px(70.0),
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, OVERLAY_ALPHA)),
+        BorderColor::all(Color::srgb(0.30, 0.24, 0.16)),
+    ))
+    .with_children(|card| {
+        card.spawn((
             Text::new(label),
             TextFont {
                 font: font.clone(),
-                font_size: 14.0,
+                font_size: 11.0,
                 ..default()
             },
             TextColor(TEXT_MUTED),
         ));
-        row.spawn((
+        card.spawn((
             Text::new(initial),
             TextFont {
                 font: font.clone(),
@@ -333,14 +385,16 @@ fn spawn_board_panel(
             width: px(BOARD_PANEL_W),
             height: percent(100.0),
             flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
-            padding: UiRect::all(px(6.0)),
+            align_items: AlignItems::Stretch,
+            justify_content: JustifyContent::FlexStart,
+            border: UiRect::right(px(2.0)),
             ..default()
         },
         BackgroundColor(BOARD_BG),
+        BorderColor::all(Color::srgb(0.28, 0.22, 0.15)),
     ))
     .with_children(|panel| {
+        // ── Board grid (fills remaining height above the detail bar) ──
         panel
             .spawn((
                 Node {
@@ -348,9 +402,10 @@ fn spawn_board_panel(
                     grid_template_columns: RepeatedGridTrack::flex(BOARD_COLS as u16, 1.0),
                     grid_template_rows: RepeatedGridTrack::flex(BOARD_ROWS as u16, 1.0),
                     width: percent(100.0),
-                    height: percent(100.0),
-                    row_gap: px(2.0),
-                    column_gap: px(2.0),
+                    flex_grow: 1.0,
+                    row_gap: px(3.0),
+                    column_gap: px(3.0),
+                    padding: UiRect::all(px(6.0)),
                     ..default()
                 },
                 BoardGrid,
@@ -360,7 +415,79 @@ fn spawn_board_panel(
                     spawn_cell(grid, idx, font, db);
                 }
             });
+
+        // ── Item detail bar (fixed height, below the grid) ────────────
+        spawn_item_detail_bar(panel, font);
     });
+}
+
+/// Spawn the item-detail bar that sits below the board grid and shows info
+/// about the currently selected piece.
+fn spawn_item_detail_bar(panel: &mut ChildSpawnerCommands, font: &Handle<Font>) {
+    panel
+        .spawn((
+            Node {
+                width: percent(100.0),
+                height: px(DETAIL_BAR_H),
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                padding: UiRect::axes(px(14.0), px(8.0)),
+                column_gap: px(14.0),
+                border: UiRect::top(px(1.0)),
+                ..default()
+            },
+            BackgroundColor(DETAIL_BAR_BG),
+            BorderColor::all(Color::srgb(0.30, 0.24, 0.16)),
+        ))
+        .with_children(|bar| {
+            // Item icon
+            bar.spawn((
+                Node {
+                    width: px(60.0),
+                    height: px(60.0),
+                    border_radius: BorderRadius::all(px(8.0)),
+                    flex_shrink: 0.0,
+                    border: UiRect::all(px(1.0)),
+                    ..default()
+                },
+                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.20)),
+                BorderColor::all(Color::srgb(0.30, 0.24, 0.16)),
+                ImageNode::default(),
+                DetailIcon,
+            ));
+
+            // Text info column
+            bar.spawn(Node {
+                flex_direction: FlexDirection::Column,
+                row_gap: px(5.0),
+                flex_grow: 1.0,
+                ..default()
+            })
+            .with_children(|col| {
+                // Name + level
+                col.spawn((
+                    Text::new("点击棋子查看详情"),
+                    TextFont {
+                        font: font.clone(),
+                        font_size: 15.0,
+                        ..default()
+                    },
+                    TextColor(TEXT_MAIN),
+                    DetailName,
+                ));
+                // Hint / action description
+                col.spawn((
+                    Text::new("拖拽同类同级棋子可合成"),
+                    TextFont {
+                        font: font.clone(),
+                        font_size: 12.0,
+                        ..default()
+                    },
+                    TextColor(TEXT_MUTED),
+                    DetailHint,
+                ));
+            });
+        });
 }
 
 fn spawn_cell(
@@ -419,7 +546,7 @@ fn spawn_order_panel(area: &mut ChildSpawnerCommands, font: &Handle<Font>) {
             flex_grow: 1.0,
             height: percent(100.0),
             flex_direction: FlexDirection::Column,
-            padding: UiRect::all(px(12.0)),
+            padding: UiRect::all(px(14.0)),
             row_gap: px(10.0),
             overflow: Overflow::clip_y(),
             ..default()
@@ -428,46 +555,74 @@ fn spawn_order_panel(area: &mut ChildSpawnerCommands, font: &Handle<Font>) {
         OrderPanel,
     ))
     .with_children(|panel| {
-        // Title
-        panel.spawn((
-            Text::new("订单"),
-            TextFont {
-                font: font.clone(),
-                font_size: 20.0,
+        // Title row
+        panel
+            .spawn(Node {
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::SpaceBetween,
+                margin: UiRect::bottom(px(6.0)),
                 ..default()
-            },
-            TextColor(ACCENT),
-            Node {
-                margin: UiRect::bottom(px(4.0)),
-                ..default()
-            },
-        ));
+            })
+            .with_children(|title_row| {
+                title_row.spawn((
+                    Text::new("📋 订单"),
+                    TextFont {
+                        font: font.clone(),
+                        font_size: 20.0,
+                        ..default()
+                    },
+                    TextColor(ACCENT),
+                ));
+            });
 
         // Three fixed order slots
         for slot in 0..3usize {
             spawn_order_slot(panel, slot, font);
         }
 
-        // Instructions section
-        panel.spawn((
-            Text::new(
-                "【操作说明】\n\
-                 • 点击棋子选中 → 再点同类同级棋子合成\n\
-                 • 双击生成器消耗1体力生成子棋\n\
-                 • 选中后点空格移动棋子\n\
-                 • 点击提交按钮完成订单",
-            ),
-            TextFont {
-                font: font.clone(),
-                font_size: 11.5,
-                ..default()
-            },
-            TextColor(TEXT_MUTED),
-            Node {
-                margin: UiRect::top(px(8.0)),
-                ..default()
-            },
-        ));
+        // Instructions section (compact)
+        panel
+            .spawn((
+                Node {
+                    flex_direction: FlexDirection::Column,
+                    padding: UiRect::all(px(10.0)),
+                    row_gap: px(4.0),
+                    margin: UiRect::top(px(4.0)),
+                    border_radius: BorderRadius::all(px(6.0)),
+                    border: UiRect::all(px(1.0)),
+                    ..default()
+                },
+                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.20)),
+                BorderColor::all(Color::srgb(0.25, 0.20, 0.14)),
+            ))
+            .with_children(|instr| {
+                instr.spawn((
+                    Text::new("操作说明"),
+                    TextFont {
+                        font: font.clone(),
+                        font_size: 13.0,
+                        ..default()
+                    },
+                    TextColor(ACCENT),
+                ));
+                for line in [
+                    "• 拖拽棋子到同类同级格 → 合成升级",
+                    "• 点击生成器消耗1体力生成子棋",
+                    "• 拖拽棋子到空格 → 移动",
+                    "• 点击提交按钮完成订单",
+                ] {
+                    instr.spawn((
+                        Text::new(line),
+                        TextFont {
+                            font: font.clone(),
+                            font_size: 11.5,
+                            ..default()
+                        },
+                        TextColor(TEXT_MUTED),
+                    ));
+                }
+            });
 
         // Message bar (pushed to bottom with flex_grow)
         panel
@@ -508,75 +663,103 @@ fn spawn_order_slot(panel: &mut ChildSpawnerCommands, slot: usize, font: &Handle
     panel
         .spawn((
             Node {
-                flex_direction: FlexDirection::Column,
+                flex_direction: FlexDirection::Row,
                 padding: UiRect::all(px(10.0)),
-                row_gap: px(5.0),
+                column_gap: px(10.0),
                 width: percent(100.0),
                 border_radius: BorderRadius::all(px(8.0)),
                 border: UiRect::all(px(1.0)),
+                align_items: AlignItems::Center,
                 ..default()
             },
             BackgroundColor(ORDER_SLOT_BG),
-            BorderColor::all(Color::srgb(0.28, 0.24, 0.18)),
+            BorderColor::all(Color::srgb(0.30, 0.25, 0.18)),
         ))
         .with_children(|s| {
-            // Item description
+            // Item icon (left side)
             s.spawn((
-                Text::new("（空）"),
-                TextFont {
-                    font: font.clone(),
-                    font_size: 14.0,
-                    ..default()
-                },
-                TextColor(TEXT_MUTED),
-                OrderItemText {
-                    order_id: slot as u32,
-                },
-            ));
-
-            // Time remaining
-            s.spawn((
-                Text::new(""),
-                TextFont {
-                    font: font.clone(),
-                    font_size: 12.0,
-                    ..default()
-                },
-                TextColor(TEXT_MUTED),
-                OrderTimeText {
-                    order_id: slot as u32,
-                },
-            ));
-
-            // Submit button
-            s.spawn((
-                Button,
                 Node {
-                    width: percent(100.0),
-                    height: px(28.0),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
+                    width: px(52.0),
+                    height: px(52.0),
+                    flex_shrink: 0.0,
+                    border_radius: BorderRadius::all(px(6.0)),
                     border: UiRect::all(px(1.0)),
-                    border_radius: BorderRadius::all(px(4.0)),
                     ..default()
                 },
-                BackgroundColor(Color::srgb(0.20, 0.20, 0.18)),
-                BorderColor::all(Color::srgb(0.35, 0.30, 0.20)),
-                OrderSubmitButton {
+                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, OVERLAY_ALPHA)),
+                BorderColor::all(Color::srgb(0.28, 0.22, 0.15)),
+                ImageNode::default(),
+                OrderIcon {
                     order_id: slot as u32,
                 },
-                SubmitBtn,
-            ))
-            .with_children(|btn| {
-                btn.spawn((
-                    Text::new("提交"),
+            ));
+
+            // Text + button column (right side)
+            s.spawn(Node {
+                flex_direction: FlexDirection::Column,
+                row_gap: px(4.0),
+                flex_grow: 1.0,
+                ..default()
+            })
+            .with_children(|col| {
+                // Item description
+                col.spawn((
+                    Text::new("（空）"),
                     TextFont {
                         font: font.clone(),
-                        font_size: 12.0,
+                        font_size: 13.0,
                         ..default()
                     },
                     TextColor(TEXT_MUTED),
+                    OrderItemText {
+                        order_id: slot as u32,
+                    },
                 ));
+
+                // Time remaining
+                col.spawn((
+                    Text::new(""),
+                    TextFont {
+                        font: font.clone(),
+                        font_size: 11.0,
+                        ..default()
+                    },
+                    TextColor(TEXT_MUTED),
+                    OrderTimeText {
+                        order_id: slot as u32,
+                    },
+                ));
+
+                // Submit button
+                col.spawn((
+                    Button,
+                    Node {
+                        width: percent(100.0),
+                        height: px(26.0),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        border: UiRect::all(px(1.0)),
+                        border_radius: BorderRadius::all(px(4.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.20, 0.20, 0.18)),
+                    BorderColor::all(Color::srgb(0.35, 0.30, 0.20)),
+                    OrderSubmitButton {
+                        order_id: slot as u32,
+                    },
+                    SubmitBtn,
+                ))
+                .with_children(|btn| {
+                    btn.spawn((
+                        Text::new("提交"),
+                        TextFont {
+                            font: font.clone(),
+                            font_size: 12.0,
+                            ..default()
+                        },
+                        TextColor(TEXT_MUTED),
+                    ));
+                });
             });
         });
 }
@@ -672,7 +855,7 @@ fn handle_cell_interaction(
                             "{} {} 自动生成中，{:.0}分钟后产出",
                             item.emoji,
                             item.name,
-                            item.auto_gen_interval_secs / 60.0,
+                            item.auto_gen_interval_secs / SECONDS_PER_MINUTE,
                         ));
                     } else if let Some(gen_id) = item.generates_id {
                         if economy.spend_stamina(1) {
@@ -703,7 +886,7 @@ fn handle_cell_interaction(
                         let hint = if item.is_auto_generator {
                             format!(
                                 "— 自动生成，{:.0}分钟/次",
-                                item.auto_gen_interval_secs / 60.0
+                                item.auto_gen_interval_secs / SECONDS_PER_MINUTE
                             )
                         } else if item.is_generator {
                             "— 再次点击生成（耗1体力）".to_string()
@@ -1116,5 +1299,76 @@ fn update_message_bar(
         if let Ok(mut t) = label_q.single_mut() {
             **t = String::new();
         }
+    }
+}
+
+/// Update the item-detail bar below the board whenever the board selection changes.
+fn update_item_detail_bar(
+    board: Res<Board>,
+    db: Res<ItemDatabase>,
+    asset_server: Res<AssetServer>,
+    mut name_q: Query<&mut Text, (With<DetailName>, Without<DetailHint>)>,
+    mut hint_q: Query<&mut Text, (With<DetailHint>, Without<DetailName>)>,
+    mut icon_q: Query<&mut ImageNode, With<DetailIcon>>,
+) {
+    if let Some(selected_idx) = board.selected {
+        if let Some(item_id) = board.cells[selected_idx].item_id.as_deref() {
+            if let Some(def) = db.get(item_id) {
+                if let Ok(mut t) = name_q.single_mut() {
+                    **t = format!("{} {} Lv{}", def.emoji, def.name, def.level);
+                }
+                if let Ok(mut t) = hint_q.single_mut() {
+                    **t = if def.is_auto_generator {
+                        format!("自动生成，{:.0} 分钟 / 次", def.auto_gen_interval_secs / SECONDS_PER_MINUTE)
+                    } else if def.is_generator {
+                        "再次点击消耗 1 体力生成子棋".to_string()
+                    } else if def.merge_result_id.is_some() {
+                        "拖拽或点击同类同级棋子可合成升级".to_string()
+                    } else {
+                        "✨ 最高级！".to_string()
+                    };
+                }
+                if let Ok(mut img) = icon_q.single_mut() {
+                    if let Some(path) = def.icon_path {
+                        img.image = asset_server.load(path);
+                    } else {
+                        img.image = Handle::default();
+                    }
+                }
+                return;
+            }
+        }
+    }
+
+    // Nothing selected — show default hint
+    if let Ok(mut t) = name_q.single_mut() {
+        **t = "点击棋子查看详情".to_string();
+    }
+    if let Ok(mut t) = hint_q.single_mut() {
+        **t = "拖拽同类同级棋子可合成".to_string();
+    }
+    if let Ok(mut img) = icon_q.single_mut() {
+        img.image = Handle::default();
+    }
+}
+
+/// Refresh the icon image shown in each order slot.
+fn update_order_icons(
+    orders: Res<Orders>,
+    db: Res<ItemDatabase>,
+    asset_server: Res<AssetServer>,
+    mut icon_q: Query<(&OrderIcon, &mut ImageNode)>,
+) {
+    for (order_icon, mut img) in &mut icon_q {
+        let slot = order_icon.order_id as usize;
+        if let Some(order) = orders.orders.get(slot) {
+            if let Some(def) = db.get(&order.item_id) {
+                if let Some(path) = def.icon_path {
+                    img.image = asset_server.load(path);
+                    continue;
+                }
+            }
+        }
+        img.image = Handle::default();
     }
 }
