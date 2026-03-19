@@ -733,7 +733,7 @@ fn tick_auto_generators(
             let id = cell.item_id.as_deref()?;
             let def = db.get(id)?;
             if def.is_auto_generator {
-                let gen_id = def.generates_id?.to_string();
+                let gen_id = def.pick_generated_item(&mut rand::thread_rng())?.to_string();
                 Some((idx, def.auto_gen_interval_secs, gen_id))
             } else {
                 None
@@ -789,25 +789,28 @@ fn handle_cell_interaction(
                             item.name,
                             item.auto_gen_interval_secs / SECONDS_PER_MINUTE,
                         ));
-                    } else if let Some(gen_id) = item.generates_id {
-                        if economy.spend_stamina(1) {
-                            if board.place_near(idx, gen_id) {
-                                if let Some(gen_item) = db.get(gen_id) {
-                                    message.set(format!(
-                                        "生成了 {} {}！剩余体力 {}",
-                                        gen_item.emoji, gen_item.name, economy.stamina,
-                                    ));
+                    } else if item.is_generator {
+                        let mut rng = rand::thread_rng();
+                        if let Some(gen_id) = item.pick_generated_item(&mut rng) {
+                            if economy.spend_stamina(1) {
+                                if board.place_near(idx, gen_id) {
+                                    if let Some(gen_item) = db.get(gen_id) {
+                                        message.set(format!(
+                                            "生成了 {} {}！剩余体力 {}",
+                                            gen_item.emoji, gen_item.name, economy.stamina,
+                                        ));
+                                    }
+                                } else {
+                                    // Board full — refund stamina
+                                    economy.stamina = (economy.stamina + 1).min(economy.max_stamina);
+                                    message.set("棋盘已满，无法生成！");
                                 }
                             } else {
-                                // Board full — refund stamina
-                                economy.stamina = (economy.stamina + 1).min(economy.max_stamina);
-                                message.set("棋盘已满，无法生成！");
+                                message.set(format!(
+                                    "体力不足（{}），等待恢复（2分钟+1）",
+                                    economy.stamina
+                                ));
                             }
-                        } else {
-                            message.set(format!(
-                                "体力不足（{}），等待恢复（2分钟+1）",
-                                economy.stamina
-                            ));
                         }
                     }
                 }
