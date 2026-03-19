@@ -40,11 +40,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
-      - name: Install wasm-bindgen-cli
-        run: |
-          WASM_BINDGEN_VERSION=$(grep -A2 'name = "wasm-bindgen"' Cargo.lock | grep '^version' | cut -d'"' -f2)
-          echo "Installing wasm-bindgen-cli ${WASM_BINDGEN_VERSION}"
-          cargo install wasm-bindgen-cli --version "${WASM_BINDGEN_VERSION}" --locked
+      # - name: Install wasm-bindgen-cli
+      #   run: |
+      #     WASM_BINDGEN_VERSION=$(grep -A2 'name = "wasm-bindgen"' Cargo.lock | grep '^version' | cut -d'"' -f2)
+      #     echo "Installing wasm-bindgen-cli ${WASM_BINDGEN_VERSION}"
+      #     cargo install wasm-bindgen-cli --version "${WASM_BINDGEN_VERSION}" --locked
 
       - name: Build WASM
         run: cargo build --profile wasm-release --target wasm32-unknown-unknown
