@@ -266,7 +266,7 @@ fn setup_ui(
     commands.spawn(Camera2d);
     orders.fill_orders(&db);
 
-    let font: Handle<Font> = asset_server.load("NotoSansCJK-Regular.ttf");
+    let font: Handle<Font> = asset_server.load("SourceHanSansSC-Medium.otf");
 
     // Root — full viewport, column layout
     commands
