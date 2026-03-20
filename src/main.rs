@@ -25,6 +25,19 @@ use systems::{
 };
 use ui::{setup_initial_board, setup_ui};
 
+// ── System sets ───────────────────────────────────────────────────────────────
+
+/// Separates game-logic systems from their dependent visual-update systems so
+/// that change-detection guards in the visual systems always see up-to-date data
+/// within the same frame.
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) enum GameSet {
+    /// Tick and input-handling systems that mutate game state.
+    Logic,
+    /// Read-only (or nearly so) systems that refresh the UI.
+    Visuals,
+}
+
 // ── Window ────────────────────────────────────────────────────────────────────
 
 const WINDOW_W: u32 = 1280;
@@ -127,6 +140,9 @@ pub(crate) struct DetailHint;
 #[derive(Component)]
 pub(crate) struct OrderIcon {
     pub(crate) order_id: u32,
+    /// Last item ID whose icon was loaded into this slot.
+    /// Used to skip redundant `asset_server.load` calls when the order hasn't changed.
+    pub(crate) cached_item_id: Option<String>,
 }
 
 /// Tag for the 仓库 (warehouse) button in the bottom bar.
@@ -165,6 +181,9 @@ fn main() {
         .insert_resource(DragState::default())
         .add_systems(Startup, setup_initial_board)
         .add_systems(Startup, setup_ui.after(setup_initial_board))
+        // Logic systems run first; visual systems run after, ensuring change-detection
+        // guards in visual systems always observe the latest game state.
+        .configure_sets(Update, GameSet::Logic.before(GameSet::Visuals))
         .add_systems(
             Update,
             (
@@ -174,14 +193,21 @@ fn main() {
                 handle_drag_input,
                 handle_cell_interaction,
                 handle_order_submit,
-                update_drag_ghost.after(handle_drag_input),
-                update_cell_visuals.after(handle_drag_input),
+            )
+                .in_set(GameSet::Logic),
+        )
+        .add_systems(
+            Update,
+            (
+                update_drag_ghost,
+                update_cell_visuals,
                 update_economy_ui,
                 update_orders_ui,
                 update_order_icons,
                 update_item_detail_bar,
                 update_message_bar,
-            ),
+            )
+                .in_set(GameSet::Visuals),
         )
         .run();
 }
