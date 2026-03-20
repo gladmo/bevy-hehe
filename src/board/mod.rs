@@ -1,6 +1,11 @@
 /// Board state and game logic for 合合游戏 (HeHe Game).
 /// Manages the 7×9 grid, item placement, and merge operations.
-use bevy::prelude::*;
+
+mod actions;
+mod components;
+
+pub use actions::ClickAction;
+pub use components::{BoardCell, BoardGrid, CellImage};
 
 use crate::items::ItemDatabase;
 
@@ -17,7 +22,7 @@ pub struct Cell {
 }
 
 /// The main board state resource.
-#[derive(Resource, Debug)]
+#[derive(bevy::prelude::Resource, Debug)]
 pub struct Board {
     pub cells: Vec<Cell>,
     /// Currently selected cell index (for click-to-select mechanic).
@@ -186,54 +191,7 @@ impl Board {
             }
         }
     }
-}
 
-/// Outcome of a cell click action.
-#[derive(Debug, Clone)]
-pub enum ClickAction {
-    None,
-    Selected(usize),
-    Deselected,
-    Merged {
-        #[allow(dead_code)]
-        source: usize,
-        #[allow(dead_code)]
-        target: usize,
-        result: String,
-    },
-    Moved {
-        #[allow(dead_code)]
-        from: usize,
-        #[allow(dead_code)]
-        to: usize,
-        item: String,
-    },
-    Swapped {
-        #[allow(dead_code)]
-        from: usize,
-        #[allow(dead_code)]
-        to: usize,
-    },
-    GeneratorActivated(usize, String),
-}
-
-/// Tag component for board cell UI entities.
-#[derive(Component, Debug, Clone)]
-pub struct BoardCell {
-    pub index: usize,
-}
-
-/// Tag component for the image inside a board cell.
-#[derive(Component, Debug, Clone)]
-pub struct CellImage {
-    pub index: usize,
-}
-
-/// Tag component for the board grid container.
-#[derive(Component, Debug)]
-pub struct BoardGrid;
-
-impl Board {
     /// Handle a drag-and-drop from `from` to `to`.
     ///
     /// Tries to merge if both cells have compatible items, otherwise moves the
@@ -246,10 +204,10 @@ impl Board {
         if let (Some(from_id), Some(to_id)) = (&from_item, &to_item) {
             if db.can_merge(from_id, to_id) {
                 // `can_merge` guarantees `merge_result_id` is Some; guard defensively.
-                let Some(result_id) = db.get(from_id).and_then(|i| i.merge_result_id) else {
-                    return ClickAction::None;
+                let result_id = match db.get(from_id).and_then(|i| i.merge_result_id) {
+                    Some(id) => id.to_string(),
+                    None => return ClickAction::None,
                 };
-                let result_id = result_id.to_string();
                 self.cells[from].item_id = None;
                 self.cells[to].item_id = Some(result_id.clone());
                 self.selected = None;
