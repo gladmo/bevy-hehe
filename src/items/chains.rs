@@ -219,7 +219,7 @@ pub fn all_items() -> Vec<ItemDef> {
     // ── 妆奁 (Dresser) generator chain (11 levels) ────────────────────────────
     // Lv1-4: merge only; Lv5-11: weighted-generates 戒指 + rare 平安扣
     let drc = (0.85, 0.55, 0.75); // pink/purple
-    items.push(ItemDef::child("dresser_1", ChainType::Dresser, 1, 空盒", "💄", Some("dresser_2"), drc, Some("images/items/item_icon.png")));
+    items.push(ItemDef::child("dresser_1", ChainType::Dresser, 1, "空盒", "💄", Some("dresser_2"), drc, Some("images/items/item_icon.png")));
     items.push(ItemDef::child("dresser_2", ChainType::Dresser, 2, "盖盒", "💄", Some("dresser_3"), drc, Some("images/items/item_icon.png")));
     items.push(ItemDef::child("dresser_3", ChainType::Dresser, 3, "木盒", "💄", Some("dresser_4"), drc, Some("images/items/item_icon.png")));
     items.push(ItemDef::child("dresser_4", ChainType::Dresser, 4, "妆奁", "💄", Some("dresser_5"), drc, Some("images/items/item_icon.png")));
