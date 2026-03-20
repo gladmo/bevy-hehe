@@ -25,6 +25,18 @@ use systems::{
 };
 use ui::{setup_initial_board, setup_ui};
 
+// ── Audio ─────────────────────────────────────────────────────────────────────
+
+const BGM_PATH: &str = "audio/bgm_SpringFestival_V1.wav";
+
+/// Spawns the looping background-music entity as soon as the game starts.
+fn setup_bgm(asset_server: Res<AssetServer>, mut commands: Commands) {
+    commands.spawn((
+        AudioPlayer::new(asset_server.load(BGM_PATH)),
+        PlaybackSettings::LOOP,
+    ));
+}
+
 // ── System sets ───────────────────────────────────────────────────────────────
 
 /// Separates game-logic systems from their dependent visual-update systems so
@@ -181,6 +193,7 @@ fn main() {
         .insert_resource(DragState::default())
         .add_systems(Startup, setup_initial_board)
         .add_systems(Startup, setup_ui.after(setup_initial_board))
+        .add_systems(Startup, setup_bgm)
         // Logic systems run first; visual systems run after, ensuring change-detection
         // guards in visual systems always observe the latest game state.
         .configure_sets(Update, GameSet::Logic.before(GameSet::Visuals))
