@@ -17,77 +17,24 @@ use crate::orders::{OrderItemText, OrderPanel, OrderSubmitButton, OrderTimeText,
 pub const ORDER_ROW_H: f32 = 145.0;
 
 pub(crate) fn setup_initial_board(mut board: ResMut<Board>) {
+    // Only place cells with actual items; empty cells remain as None so that
+    // first_empty() / adjacent_empty() can locate them for item generation.
     board.place(Board::idx(0, 0), "poultry_6");
-    board.place(Board::idx(1, 0), "");
-    board.place(Board::idx(2, 0), "");
-    board.place(Board::idx(3, 0), "");
-    board.place(Board::idx(4, 0), "");
-    board.place(Board::idx(5, 0), "");
-    board.place(Board::idx(6, 0), "");
 
-    board.place(Board::idx(0, 1), "");
-    board.place(Board::idx(1, 1), "");
-    board.place(Board::idx(2, 1), "");
-    board.place(Board::idx(3, 1), "");
-    board.place(Board::idx(4, 1), "");
-    board.place(Board::idx(5, 1), "");
-    board.place(Board::idx(6, 1), "");
-
-    board.place(Board::idx(0, 2), "");
-    board.place(Board::idx(1, 2), "");
     board.place(Board::idx(2, 2), "dough_5");
-    board.place(Board::idx(3, 2), "");
-    board.place(Board::idx(4, 2), "");
-    board.place(Board::idx(5, 2), "");
-    board.place(Board::idx(6, 2), "");
 
-    board.place(Board::idx(0, 3), "");
     board.place(Board::idx(1, 3), "basket_1");
     board.place(Board::idx(2, 3), "basket_1");
-    board.place(Board::idx(3, 3), "");
-    board.place(Board::idx(4, 3), "");
-    board.place(Board::idx(5, 3), "");
-    board.place(Board::idx(6, 3), "");
 
     board.place(Board::idx(0, 4), "dough_2");
     board.place(Board::idx(1, 4), "basket_1");
     board.place(Board::idx(2, 4), "basket_1");
     board.place(Board::idx(3, 4), "basket_3");
     board.place(Board::idx(4, 4), "dough_3");
-    board.place(Board::idx(5, 4), "");
-    board.place(Board::idx(6, 4), "");
 
-    board.place(Board::idx(0, 5), "");
     board.place(Board::idx(1, 5), "watermelon_3");
     board.place(Board::idx(2, 5), "watermelon_1");
     board.place(Board::idx(3, 5), "dough_3");
-    board.place(Board::idx(4, 5), "");
-    board.place(Board::idx(5, 5), "");
-    board.place(Board::idx(6, 5), "");
-
-    board.place(Board::idx(0, 6), "");
-    board.place(Board::idx(1, 6), "");
-    board.place(Board::idx(2, 6), "");
-    board.place(Board::idx(3, 6), "");
-    board.place(Board::idx(4, 6), "");
-    board.place(Board::idx(5, 6), "");
-    board.place(Board::idx(6, 6), "");
-
-    board.place(Board::idx(0, 7), "");
-    board.place(Board::idx(1, 7), "");
-    board.place(Board::idx(2, 7), "");
-    board.place(Board::idx(3, 7), "");
-    board.place(Board::idx(4, 7), "");
-    board.place(Board::idx(5, 7), "");
-    board.place(Board::idx(6, 7), "");
-
-    board.place(Board::idx(0, 8), "");
-    board.place(Board::idx(1, 8), "");
-    board.place(Board::idx(2, 8), "");
-    board.place(Board::idx(3, 8), "");
-    board.place(Board::idx(4, 8), "");
-    board.place(Board::idx(5, 8), "");
-    board.place(Board::idx(6, 8), "");
 }
 
 /// Build the full UI hierarchy.

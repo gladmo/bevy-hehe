@@ -52,8 +52,11 @@ impl Board {
         (idx % BOARD_COLS, idx / BOARD_COLS)
     }
 
-    /// Place an item at the given cell index. Returns false if cell is occupied.
+    /// Place an item at the given cell index. Returns false if cell is occupied or item_id is empty.
     pub fn place(&mut self, idx: usize, item_id: &str) -> bool {
+        if item_id.is_empty() {
+            return false;
+        }
         if self.cells[idx].item_id.is_none() {
             self.cells[idx].item_id = Some(item_id.to_string());
             self.dirty = true;
