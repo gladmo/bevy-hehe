@@ -2,16 +2,16 @@
 //! Contains startup systems and UI spawn helpers.
 use bevy::prelude::*;
 
-use crate::{
-    ActivityButton, DetailHint, DetailIcon, DetailName, DragGhost, MessageLabel, OrderIcon,
-    SubmitBtn, WarehouseButton, ACCENT, ACCENT_GREEN, BOARD_BG, CELL_EMPTY, CELL_EMPTY_ALT,
-    DETAIL_BAR_BG, DETAIL_BAR_H, ORDER_BG, ORDER_SLOT_BG, OVERLAY_ALPHA,
-    TEXT_MAIN, TEXT_MUTED, TOP_BAR_BG, TOP_BAR_H,
-};
 use crate::board::{Board, BoardCell, BoardGrid, CellImage, BOARD_COLS, BOARD_ROWS};
 use crate::economy::{CoinsLabel, GemsLabel, LevelLabel, StaminaLabel};
 use crate::items::ItemDatabase;
 use crate::orders::{OrderItemText, OrderPanel, OrderSubmitButton, OrderTimeText, Orders};
+use crate::{
+    ActivityButton, DetailHint, DetailIcon, DetailName, DragGhost, MessageLabel, OrderIcon,
+    SubmitBtn, WarehouseButton, ACCENT, ACCENT_GREEN, BOARD_BG, CELL_EMPTY, CELL_EMPTY_ALT,
+    DETAIL_BAR_BG, DETAIL_BAR_H, ORDER_BG, ORDER_SLOT_BG, OVERLAY_ALPHA, TEXT_MAIN, TEXT_MUTED,
+    TOP_BAR_BG, TOP_BAR_H,
+};
 
 /// Height of the horizontal order row at the top of the content area.
 pub const ORDER_ROW_H: f32 = 145.0;
@@ -100,7 +100,7 @@ pub(crate) fn setup_ui(
     commands.spawn(Camera2d);
     orders.fill_orders(&db);
 
-    let font: Handle<Font> = asset_server.load("SourceHanSansSC-Medium.otf");
+    let font: Handle<Font> = asset_server.load("fonts/SourceHanSansSC-Medium.otf");
 
     // Root — full viewport, column layout
     commands
@@ -575,4 +575,3 @@ fn spawn_cell(grid: &mut ChildSpawnerCommands, idx: usize) {
         ));
     });
 }
-

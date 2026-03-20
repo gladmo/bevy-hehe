@@ -55,7 +55,11 @@ pub struct GenerationOption {
 
 impl GenerationOption {
     pub const fn new(item_id: &'static str, base_weight: u32, level_bonus: u32) -> Self {
-        Self { item_id, base_weight, level_bonus }
+        Self {
+            item_id,
+            base_weight,
+            level_bonus,
+        }
     }
 
     /// Compute effective weight at a given generator level.
@@ -74,7 +78,7 @@ pub struct ItemDef {
     pub level: u32,
     pub name: &'static str,
     pub emoji: &'static str,
-    /// Asset path for the item icon image (e.g. "item_icon_10601.png")
+    /// Asset path for the item icon image (e.g. "images/items/item_icon.png")
     pub icon_path: Option<&'static str>,
     /// If true, clicking this item generates a child item (costs 1 stamina)
     pub is_generator: bool,
@@ -98,7 +102,11 @@ impl ItemDef {
     /// Uses `self.generates` options weighted by `effective_weight(self.level)`.
     /// Falls back to `self.generates_id` if the table is empty or all weights are zero.
     pub fn pick_generated_item<R: Rng>(&self, rng: &mut R) -> Option<&'static str> {
-        let total: u32 = self.generates.iter().map(|o| o.effective_weight(self.level)).sum();
+        let total: u32 = self
+            .generates
+            .iter()
+            .map(|o| o.effective_weight(self.level))
+            .sum();
         if total == 0 {
             return self.generates_id;
         }
@@ -199,4 +207,3 @@ impl ItemDef {
         }
     }
 }
-
