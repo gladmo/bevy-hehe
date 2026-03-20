@@ -305,6 +305,7 @@ fn spawn_order_card(panel: &mut ChildSpawnerCommands, slot: usize, font: &Handle
                 ImageNode::default(),
                 OrderIcon {
                     order_id: slot as u32,
+                    cached_item_id: None,
                 },
             ));
 

@@ -413,11 +413,20 @@ pub(crate) fn handle_drag_input(
 }
 
 /// Moves the drag-ghost node to the cursor and loads the correct icon image.
+///
+/// Skips all work when `DragState` has not been mutated this frame, which
+/// is the common case when no drag gesture is in progress.
 pub(crate) fn update_drag_ghost(
     drag: Res<DragState>,
     asset_server: Res<AssetServer>,
     mut ghost_q: Query<(&mut Node, &mut ImageNode), With<DragGhost>>,
 ) {
+    // DragState is only mutated by handle_drag_input when input events occur.
+    // Skip the ghost update entirely when nothing has changed.
+    if !drag.is_changed() {
+        return;
+    }
+
     let Ok((mut node, mut img)) = ghost_q.single_mut() else {
         return;
     };
@@ -436,6 +445,14 @@ pub(crate) fn update_drag_ghost(
 }
 
 /// Refresh all 63 board cell visuals.
+///
+/// This system is change-detection aware:
+/// - It skips entirely when neither the board, the drag state, nor any cell's
+///   `Interaction` component has changed this frame.
+/// - Background and border colors use `set_if_neq` so only cells whose visual
+///   state truly differs mark their components as changed for the renderer.
+/// - Cell icon images are only reloaded when the board itself changes (item
+///   placements / merges), not on hover or drag-position updates.
 pub(crate) fn update_cell_visuals(
     board: Res<Board>,
     drag: Res<DragState>,
@@ -448,7 +465,17 @@ pub(crate) fn update_cell_visuals(
         &mut BorderColor,
     )>,
     mut image_query: Query<(&CellImage, &mut Node, &mut ImageNode)>,
+    // Lightweight query: detects whether any cell's hover/press state changed.
+    changed_interactions: Query<(), (Changed<Interaction>, With<BoardCell>)>,
 ) {
+    let board_changed = board.is_changed();
+    let drag_changed = drag.is_changed();
+
+    // Skip the entire system when nothing that affects visuals has changed.
+    if !board_changed && !drag_changed && changed_interactions.is_empty() {
+        return;
+    }
+
     for (cell, interaction, mut bg, mut border) in &mut cell_query {
         let idx = cell.index;
         let item_id = board.cells[idx].item_id.as_deref();
@@ -463,7 +490,7 @@ pub(crate) fn update_cell_visuals(
             CELL_EMPTY_ALT
         };
 
-        *bg = if is_drag_source {
+        let new_bg = if is_drag_source {
             // Dim the source cell while the piece is being dragged
             BackgroundColor(Color::srgba(0.30, 0.25, 0.15, 0.45))
         } else if selected {
@@ -485,32 +512,45 @@ pub(crate) fn update_cell_visuals(
             BackgroundColor(base_empty_bg)
         };
 
-        *border = if is_drag_source {
+        let new_border = if is_drag_source {
             BorderColor::all(Color::srgba(0.88, 0.72, 0.30, 0.50))
         } else if selected {
             BorderColor::all(ACCENT)
         } else {
             BorderColor::all(Color::srgb(0.25, 0.22, 0.17))
         };
+
+        // Only mutate (and mark changed for the renderer) when the value differs.
+        bg.set_if_neq(new_bg);
+        border.set_if_neq(new_border);
     }
 
-    for (ci, mut node, mut img) in &mut image_query {
-        let idx = ci.index;
-        match board.cells[idx].item_id.as_deref() {
-            Some(id) => {
-                if let Some(def) = db.get(id) {
-                    if let Some(icon_path) = def.icon_path {
-                        img.image = asset_server.load(icon_path);
+    // Icon images only change when items are placed, moved, or merged — not on hover.
+    if board_changed {
+        for (ci, mut node, mut img) in &mut image_query {
+            let idx = ci.index;
+            let icon_path = board.cells[idx]
+                .item_id
+                .as_deref()
+                .and_then(|id| db.get(id))
+                .and_then(|def| def.icon_path);
+
+            match icon_path {
+                Some(path) => {
+                    let new_handle = asset_server.load(path);
+                    // Only update (and mark ImageNode changed) when the handle differs.
+                    if img.image != new_handle {
+                        img.image = new_handle;
+                    }
+                    if node.display != Display::Flex {
                         node.display = Display::Flex;
-                    } else {
+                    }
+                }
+                None => {
+                    if node.display != Display::None {
                         node.display = Display::None;
                     }
-                } else {
-                    node.display = Display::None;
                 }
-            }
-            None => {
-                node.display = Display::None;
             }
         }
     }
@@ -555,17 +595,32 @@ pub(crate) fn update_economy_ui(
         ),
     >,
 ) {
+    // Economy ticks every frame (stamina timer), so is_changed() is always true.
+    // Use value comparison to avoid marking Text as changed when the displayed
+    // value hasn't actually changed (stamina only changes every 2 minutes, etc.).
     if let Ok(mut t) = stamina_q.single_mut() {
-        **t = format!("{}/{}", economy.stamina, economy.max_stamina);
+        let new_val = format!("{}/{}", economy.stamina, economy.max_stamina);
+        if **t != new_val {
+            **t = new_val;
+        }
     }
     if let Ok(mut t) = coins_q.single_mut() {
-        **t = economy.coins.to_string();
+        let new_val = economy.coins.to_string();
+        if **t != new_val {
+            **t = new_val;
+        }
     }
     if let Ok(mut t) = gems_q.single_mut() {
-        **t = economy.gems.to_string();
+        let new_val = economy.gems.to_string();
+        if **t != new_val {
+            **t = new_val;
+        }
     }
     if let Ok(mut t) = level_q.single_mut() {
-        **t = economy.level.to_string();
+        let new_val = economy.level.to_string();
+        if **t != new_val {
+            **t = new_val;
+        }
     }
 }
 
@@ -588,9 +643,10 @@ pub(crate) fn update_orders_ui(
         ),
     >,
 ) {
+    // Item description only changes when orders are fulfilled or expire (rare).
     for (slot_cmp, mut text) in &mut item_text_q {
         let slot = slot_cmp.order_id as usize;
-        **text = if let Some(order) = orders.orders.get(slot) {
+        let new_text = if let Some(order) = orders.orders.get(slot) {
             format!(
                 "{} {} ×{}  奖励{}铜板",
                 order.item_emoji, order.item_name, order.quantity, order.coin_reward
@@ -598,25 +654,33 @@ pub(crate) fn update_orders_ui(
         } else {
             "（空）".to_string()
         };
+        if **text != new_text {
+            **text = new_text;
+        }
     }
 
+    // Timer text changes every second; compare to avoid 60 redundant updates per second.
     for (slot_cmp, mut text) in &mut time_text_q {
         let slot = slot_cmp.order_id as usize;
-        **text = if let Some(order) = orders.orders.get(slot) {
+        let new_text = if let Some(order) = orders.orders.get(slot) {
             format!("剩余：{}", format_time(order.time_remaining_secs))
         } else {
             String::new()
         };
+        if **text != new_text {
+            **text = new_text;
+        }
     }
 
+    // Submit button colors only change when orders appear or disappear.
     for (submit, mut bg, mut border) in &mut submit_q {
         let slot = submit.order_id as usize;
         if orders.orders.get(slot).is_some() {
-            *bg = BackgroundColor(ORDER_SUBMIT_BG);
-            *border = BorderColor::all(Color::srgb(0.40, 0.65, 0.30));
+            bg.set_if_neq(BackgroundColor(ORDER_SUBMIT_BG));
+            border.set_if_neq(BorderColor::all(Color::srgb(0.40, 0.65, 0.30)));
         } else {
-            *bg = BackgroundColor(Color::srgb(0.18, 0.18, 0.16));
-            *border = BorderColor::all(Color::srgb(0.28, 0.25, 0.20));
+            bg.set_if_neq(BackgroundColor(Color::srgb(0.18, 0.18, 0.16)));
+            border.set_if_neq(BorderColor::all(Color::srgb(0.28, 0.25, 0.20)));
         }
     }
 }
@@ -640,6 +704,9 @@ pub(crate) fn update_message_bar(
 }
 
 /// Update the item-detail bar below the board whenever the board selection changes.
+///
+/// Skips entirely when the board has not changed this frame, avoiding
+/// redundant text and image updates on every idle frame.
 pub(crate) fn update_item_detail_bar(
     board: Res<Board>,
     db: Res<ItemDatabase>,
@@ -648,6 +715,11 @@ pub(crate) fn update_item_detail_bar(
     mut hint_q: Query<&mut Text, (With<DetailHint>, Without<DetailName>)>,
     mut icon_q: Query<&mut ImageNode, With<DetailIcon>>,
 ) {
+    // Board is only marked changed when items move, merge, or the selection changes.
+    if !board.is_changed() {
+        return;
+    }
+
     if let Some(selected_idx) = board.selected {
         if let Some(item_id) = board.cells[selected_idx].item_id.as_deref() {
             if let Some(def) = db.get(item_id) {
@@ -693,22 +765,37 @@ pub(crate) fn update_item_detail_bar(
 }
 
 /// Refresh the icon image shown in each order slot.
+///
+/// Uses a per-slot item-ID cache stored on the `OrderIcon` component to avoid
+/// calling `asset_server.load` and marking `ImageNode` as changed on every
+/// frame when the order contents haven't actually changed.
 pub(crate) fn update_order_icons(
     orders: Res<Orders>,
     db: Res<ItemDatabase>,
     asset_server: Res<AssetServer>,
-    mut icon_q: Query<(&OrderIcon, &mut ImageNode)>,
+    mut icon_q: Query<(&mut OrderIcon, &mut ImageNode)>,
 ) {
-    for (order_icon, mut img) in &mut icon_q {
+    for (mut order_icon, mut img) in &mut icon_q {
         let slot = order_icon.order_id as usize;
-        if let Some(order) = orders.orders.get(slot) {
-            if let Some(def) = db.get(&order.item_id) {
-                if let Some(path) = def.icon_path {
-                    img.image = asset_server.load(path);
-                    continue;
-                }
-            }
+        let current_item_id = orders.orders.get(slot).map(|o| o.item_id.as_str());
+
+        // Skip if the item in this slot hasn't changed since the last update.
+        if current_item_id == order_icon.cached_item_id.as_deref() {
+            continue;
         }
-        img.image = Handle::default();
+
+        // Update the cache. Bypass change detection on OrderIcon itself because
+        // no other system reacts to OrderIcon changes.
+        order_icon.bypass_change_detection().cached_item_id =
+            current_item_id.map(|s| s.to_string());
+
+        // Load and apply the new icon (or clear if slot is empty).
+        let new_handle = current_item_id
+            .and_then(|id| db.get(id))
+            .and_then(|def| def.icon_path)
+            .map(|path| asset_server.load(path))
+            .unwrap_or_default();
+
+        img.image = new_handle;
     }
 }
