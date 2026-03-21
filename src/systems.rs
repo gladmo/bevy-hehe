@@ -119,14 +119,17 @@ pub(crate) fn handle_cell_interaction(
             ClickAction::GeneratorActivated(idx, item_id) => {
                 if let Some(item) = db.get(&item_id) {
                     if item.is_auto_generator {
-                        // 老母鸡: place a stored egg (no stamina cost)
-                        let pending = egg_storage.0.get(&idx).copied().unwrap_or(0);
-                        if pending > 0 {
-                            if let Some(gen_id) = item.generates_id {
-                                if board.place_near(idx, gen_id) {
+                        // 老母鸡: place an egg (no stamina cost).
+                        // Consumes a stored egg from EggStorage when available;
+                        // otherwise produces one on the spot so that double-clicking
+                        // always works regardless of how long the hen has been running.
+                        if let Some(gen_id) = item.generates_id {
+                            if board.place_near(idx, gen_id) {
+                                let pending = egg_storage.0.get(&idx).copied().unwrap_or(0);
+                                if pending > 0 {
                                     let s = egg_storage.0.entry(idx).or_insert(0);
                                     *s = s.saturating_sub(1);
-                                    let remaining = egg_storage.0.get(&idx).copied().unwrap_or(0);
+                                    let remaining = *s;
                                     if remaining > 0 {
                                         message.set(format!(
                                             "放置了鸡蛋！还有 {} 枚待放置",
@@ -136,13 +139,11 @@ pub(crate) fn handle_cell_interaction(
                                         message.set("鸡蛋已全部放置！");
                                     }
                                 } else {
-                                    message.set("棋盘已满，无法放置鸡蛋！");
+                                    message.set(format!("产出了 {} 鸡蛋！", item.emoji));
                                 }
+                            } else {
+                                message.set("棋盘已满，无法放置鸡蛋！");
                             }
-                        } else {
-                            message.set(
-                                "暂无存储鸡蛋（老母鸡每小时自动生产一枚，最多存 6 枚）",
-                            );
                         }
                     } else if item.is_generator {
                         let mut rng = rand::thread_rng();
