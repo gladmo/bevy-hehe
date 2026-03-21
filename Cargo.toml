@@ -6,7 +6,11 @@ description = "合合游戏 (HeHe Game) - An ancient Chinese tea house themed me
 license = "MIT"
 
 [dependencies]
-bevy = { version = "0.18.1", default-features = true }
+bevy = { version = "0.18.1", default-features = true, features = [
+    "mp3",
+    "wav",
+    "std",
+] }
 rand = "0.8"
 getrandom = { version = "0.2", features = ["js"] }
 
