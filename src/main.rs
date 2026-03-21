@@ -90,6 +90,14 @@ pub(crate) const OVERLAY_ALPHA: f32 = 0.25;
 #[derive(Resource, Default, Debug)]
 pub(crate) struct AutoGenTimers(pub(crate) std::collections::HashMap<usize, f32>);
 
+/// Pending eggs per auto-generator cell (cell index → count of stored eggs, max 6).
+///
+/// 老母鸡 accumulates up to 6 eggs (one per hour). Stored eggs are auto-placed to
+/// adjacent empty cells; if no adjacent space is available the player can click the
+/// hen to place one egg in the nearest empty cell (no stamina cost).
+#[derive(Resource, Default, Debug)]
+pub(crate) struct EggStorage(pub(crate) std::collections::HashMap<usize, u32>);
+
 /// Temporary message shown in the order panel.
 #[derive(Resource, Default, Debug)]
 pub(crate) struct MessageBar {
@@ -189,6 +197,7 @@ fn main() {
         .init_resource::<Orders>()
         .insert_resource(ItemDatabase::new())
         .insert_resource(AutoGenTimers::default())
+        .insert_resource(EggStorage::default())
         .insert_resource(MessageBar::default())
         .insert_resource(DragState::default())
         .add_systems(Startup, setup_initial_board)
