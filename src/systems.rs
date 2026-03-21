@@ -2,9 +2,9 @@
 use bevy::prelude::*;
 
 use crate::{
-    AutoGenTimers, DetailHint, DetailIcon, DetailName, DragGhost, DragState, MessageBar,
-    MessageLabel, OrderIcon, SubmitBtn, ACCENT, CELL_EMPTY, CELL_EMPTY_ALT, CELL_HOVERED,
-    CELL_SELECTED, DRAG_THRESHOLD_PIXELS, ORDER_SUBMIT_BG, SECONDS_PER_MINUTE,
+    AutoGenTimers, EggStorage, DetailHint, DetailIcon, DetailName, DragGhost, DragState,
+    MessageBar, MessageLabel, OrderIcon, SubmitBtn, ACCENT, CELL_EMPTY, CELL_EMPTY_ALT,
+    CELL_HOVERED, CELL_SELECTED, DRAG_THRESHOLD_PIXELS, ORDER_SUBMIT_BG, SECONDS_PER_MINUTE,
 };
 use crate::board::{Board, BoardCell, CellImage, ClickAction, BOARD_COLS};
 use crate::economy::{CoinsLabel, Economy, GemsLabel, LevelLabel, StaminaLabel};
@@ -33,6 +33,7 @@ pub(crate) fn tick_auto_generators(
     mut board: ResMut<Board>,
     db: Res<ItemDatabase>,
     mut timers: ResMut<AutoGenTimers>,
+    mut egg_storage: ResMut<EggStorage>,
     mut message: ResMut<MessageBar>,
 ) {
     let delta = time.delta_secs();
@@ -46,9 +47,7 @@ pub(crate) fn tick_auto_generators(
             let id = cell.item_id.as_deref()?;
             let def = db.get(id)?;
             if def.is_auto_generator {
-                let gen_id = def
-                    .pick_generated_item(&mut rand::thread_rng())?
-                    .to_string();
+                let gen_id = def.generates_id?.to_string();
                 Some((idx, def.auto_gen_interval_secs, gen_id))
             } else {
                 None
@@ -61,8 +60,29 @@ pub(crate) fn tick_auto_generators(
         *acc += delta;
         if *acc >= interval {
             *acc -= interval;
-            if !board.place_near(idx, &gen_id) {
-                message.set("棋盘已满，自动生成失败！");
+            // Add one egg to storage (max 6 stored eggs)
+            let stored = egg_storage.0.entry(idx).or_insert(0);
+            if *stored < 6 {
+                *stored += 1;
+            }
+            // Only warn when storage is full and no adjacent space is available
+            // (check here so the message fires once per interval, not every frame)
+            let stored_now = *egg_storage.0.get(&idx).unwrap_or(&0);
+            if stored_now >= 6 && board.adjacent_empty(idx).is_none() {
+                message.set(format!(
+                    "老母鸡存蛋已满（{}枚），请为周围腾出空位，或点击放置到最近空位！",
+                    stored_now
+                ));
+            }
+        }
+
+        // Try to auto-place a pending egg to an adjacent empty cell each frame
+        let stored = *egg_storage.0.get(&idx).unwrap_or(&0);
+        if stored > 0 {
+            if let Some(adj_idx) = board.adjacent_empty(idx) {
+                board.place(adj_idx, &gen_id);
+                let s = egg_storage.0.entry(idx).or_insert(0);
+                *s = s.saturating_sub(1);
             }
         }
     }
@@ -73,6 +93,7 @@ pub(crate) fn handle_cell_interaction(
     db: Res<ItemDatabase>,
     mut economy: ResMut<Economy>,
     mut message: ResMut<MessageBar>,
+    mut egg_storage: ResMut<EggStorage>,
     interaction_query: Query<(&Interaction, &BoardCell), Changed<Interaction>>,
 ) {
     for (interaction, cell) in &interaction_query {
@@ -97,7 +118,33 @@ pub(crate) fn handle_cell_interaction(
             }
             ClickAction::GeneratorActivated(idx, item_id) => {
                 if let Some(item) = db.get(&item_id) {
-                    if item.is_generator {
+                    if item.is_auto_generator {
+                        // 老母鸡: place a stored egg (no stamina cost)
+                        let pending = egg_storage.0.get(&idx).copied().unwrap_or(0);
+                        if pending > 0 {
+                            if let Some(gen_id) = item.generates_id {
+                                if board.place_near(idx, gen_id) {
+                                    let s = egg_storage.0.entry(idx).or_insert(0);
+                                    *s = s.saturating_sub(1);
+                                    let remaining = egg_storage.0.get(&idx).copied().unwrap_or(0);
+                                    if remaining > 0 {
+                                        message.set(format!(
+                                            "放置了鸡蛋！还有 {} 枚待放置",
+                                            remaining
+                                        ));
+                                    } else {
+                                        message.set("鸡蛋已全部放置！");
+                                    }
+                                } else {
+                                    message.set("棋盘已满，无法放置鸡蛋！");
+                                }
+                            }
+                        } else {
+                            message.set(
+                                "暂无存储鸡蛋（老母鸡每小时自动生产一枚，最多存 6 枚）",
+                            );
+                        }
+                    } else if item.is_generator {
                         let mut rng = rand::thread_rng();
                         if let Some(gen_id) = item.pick_generated_item(&mut rng) {
                             if economy.spend_stamina(1) {
@@ -128,9 +175,11 @@ pub(crate) fn handle_cell_interaction(
                 if let Some(id) = board.cells[idx].item_id.clone() {
                     if let Some(item) = db.get(&id) {
                         let hint = if item.is_auto_generator {
+                            let pending = egg_storage.0.get(&idx).copied().unwrap_or(0);
                             format!(
-                                "— 自动生成（{:.0}分钟/次），再次点击耗 1 体力立即生成",
-                                item.auto_gen_interval_secs / SECONDS_PER_MINUTE
+                                "— 自动产蛋（每 {:.0} 分钟 1 枚，存 {}/6 枚），再次点击放置到最近空位",
+                                item.auto_gen_interval_secs / SECONDS_PER_MINUTE,
+                                pending
                             )
                         } else if item.is_generator {
                             "— 再次点击生成（耗1体力）".to_string()
@@ -698,18 +747,20 @@ pub(crate) fn update_message_bar(
 
 /// Update the item-detail bar below the board whenever the board selection changes.
 ///
-/// Skips entirely when the board has not changed this frame, avoiding
-/// redundant text and image updates on every idle frame.
+/// Skips entirely when neither the board nor the egg storage has changed this frame,
+/// avoiding redundant text and image updates on every idle frame.
 pub(crate) fn update_item_detail_bar(
     board: Res<Board>,
     db: Res<ItemDatabase>,
     asset_server: Res<AssetServer>,
+    egg_storage: Res<EggStorage>,
     mut name_q: Query<&mut Text, (With<DetailName>, Without<DetailHint>)>,
     mut hint_q: Query<&mut Text, (With<DetailHint>, Without<DetailName>)>,
     mut icon_q: Query<&mut ImageNode, With<DetailIcon>>,
 ) {
     // Board is only marked changed when items move, merge, or the selection changes.
-    if !board.is_changed() {
+    // Egg storage changes once per hour (or on click), so both triggers are cheap.
+    if !board.is_changed() && !egg_storage.is_changed() {
         return;
     }
 
@@ -721,9 +772,12 @@ pub(crate) fn update_item_detail_bar(
                 }
                 if let Ok(mut t) = hint_q.single_mut() {
                     **t = if def.is_auto_generator {
+                        let pending =
+                            egg_storage.0.get(&selected_idx).copied().unwrap_or(0);
                         format!(
-                            "自动生成（{:.0} 分钟 / 次）| 再次点击消耗 1 体力立即生成",
-                            def.auto_gen_interval_secs / SECONDS_PER_MINUTE
+                            "自动产蛋（每 {:.0} 分钟 1 枚，最多存 6 枚）| 已存 {} 枚 | 再次点击放置到最近空位",
+                            def.auto_gen_interval_secs / SECONDS_PER_MINUTE,
+                            pending
                         )
                     } else if def.is_generator {
                         "再次点击消耗 1 体力生成子棋".to_string()
