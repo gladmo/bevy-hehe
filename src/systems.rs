@@ -97,14 +97,7 @@ pub(crate) fn handle_cell_interaction(
             }
             ClickAction::GeneratorActivated(idx, item_id) => {
                 if let Some(item) = db.get(&item_id) {
-                    if item.is_auto_generator {
-                        message.set(format!(
-                            "{} {} 自动生成中，{:.0}分钟后产出",
-                            item.emoji,
-                            item.name,
-                            item.auto_gen_interval_secs / SECONDS_PER_MINUTE,
-                        ));
-                    } else if item.is_generator {
+                    if item.is_generator {
                         let mut rng = rand::thread_rng();
                         if let Some(gen_id) = item.pick_generated_item(&mut rng) {
                             if economy.spend_stamina(1) {
@@ -136,7 +129,7 @@ pub(crate) fn handle_cell_interaction(
                     if let Some(item) = db.get(&id) {
                         let hint = if item.is_auto_generator {
                             format!(
-                                "— 自动生成，{:.0}分钟/次",
+                                "— 自动生成（{:.0}分钟/次），再次点击耗 1 体力立即生成",
                                 item.auto_gen_interval_secs / SECONDS_PER_MINUTE
                             )
                         } else if item.is_generator {
@@ -729,7 +722,7 @@ pub(crate) fn update_item_detail_bar(
                 if let Ok(mut t) = hint_q.single_mut() {
                     **t = if def.is_auto_generator {
                         format!(
-                            "自动生成，{:.0} 分钟 / 次",
+                            "自动生成（{:.0} 分钟 / 次）| 再次点击消耗 1 体力立即生成",
                             def.auto_gen_interval_secs / SECONDS_PER_MINUTE
                         )
                     } else if def.is_generator {
