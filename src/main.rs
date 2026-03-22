@@ -29,12 +29,52 @@ use ui::{setup_initial_board, setup_ui};
 
 const BGM_PATH: &str = "audio/bgm_SpringFestival_V1.wav";
 
+/// Marker component for the background-music entity so we can query it later.
+#[derive(Component)]
+struct BgmSink;
+
 /// Spawns the looping background-music entity as soon as the game starts.
+///
+/// On WASM, browsers block audio autoplay until the user interacts with the
+/// page, so the sink is started in a paused state and resumed by
+/// [`unlock_bgm_on_interaction`] on the first input event.
 fn setup_bgm(asset_server: Res<AssetServer>, mut commands: Commands) {
     commands.spawn((
+        BgmSink,
         AudioPlayer::new(asset_server.load(BGM_PATH)),
+        #[cfg(not(target_arch = "wasm32"))]
         PlaybackSettings::LOOP,
+        #[cfg(target_arch = "wasm32")]
+        PlaybackSettings {
+            mode: bevy::audio::PlaybackMode::Loop,
+            paused: true,
+            ..default()
+        },
     ));
+}
+
+/// WASM only: resumes the background music on the first mouse-click, key-press,
+/// or touch-start event, working around browsers' autoplay policy.
+#[cfg(target_arch = "wasm32")]
+fn unlock_bgm_on_interaction(
+    mut unlocked: Local<bool>,
+    sinks: Query<&AudioSink, With<BgmSink>>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    keys: Res<ButtonInput<KeyCode>>,
+    touches: Res<Touches>,
+) {
+    if *unlocked {
+        return;
+    }
+    let interacted = mouse.get_just_pressed().next().is_some()
+        || keys.get_just_pressed().next().is_some()
+        || touches.iter_just_pressed().next().is_some();
+    if interacted {
+        for sink in &sinks {
+            sink.play();
+        }
+        *unlocked = true;
+    }
 }
 
 // ── System sets ───────────────────────────────────────────────────────────────
@@ -176,33 +216,38 @@ pub(crate) struct ActivityButton;
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 fn main() {
-    App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "合合游戏 (HeHe Game)".to_string(),
-                resolution: (WINDOW_W, WINDOW_H).into(),
-                resizable: false,
-                // On WASM, fit into the browser canvas rather than opening a new window.
-                #[cfg(target_arch = "wasm32")]
-                canvas: Some("#bevy-canvas".to_string()),
-                #[cfg(target_arch = "wasm32")]
-                fit_canvas_to_parent: true,
-                ..default()
-            }),
+    let mut app = App::new();
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: "合合游戏 (HeHe Game)".to_string(),
+            resolution: (WINDOW_W, WINDOW_H).into(),
+            resizable: false,
+            // On WASM, fit into the browser canvas rather than opening a new window.
+            #[cfg(target_arch = "wasm32")]
+            canvas: Some("#bevy-canvas".to_string()),
+            #[cfg(target_arch = "wasm32")]
+            fit_canvas_to_parent: true,
             ..default()
-        }))
-        .insert_resource(ClearColor(BG))
-        .init_resource::<Board>()
-        .init_resource::<Economy>()
-        .init_resource::<Orders>()
-        .insert_resource(ItemDatabase::new())
-        .insert_resource(AutoGenTimers::default())
-        .insert_resource(EggStorage::default())
-        .insert_resource(MessageBar::default())
-        .insert_resource(DragState::default())
-        .add_systems(Startup, setup_initial_board)
-        .add_systems(Startup, setup_ui.after(setup_initial_board))
-        .add_systems(Startup, setup_bgm)
+        }),
+        ..default()
+    }))
+    .insert_resource(ClearColor(BG))
+    .init_resource::<Board>()
+    .init_resource::<Economy>()
+    .init_resource::<Orders>()
+    .insert_resource(ItemDatabase::new())
+    .insert_resource(AutoGenTimers::default())
+    .insert_resource(EggStorage::default())
+    .insert_resource(MessageBar::default())
+    .insert_resource(DragState::default())
+    .add_systems(Startup, setup_initial_board)
+    .add_systems(Startup, setup_ui.after(setup_initial_board))
+    .add_systems(Startup, setup_bgm);
+    // On WASM, resume the paused BGM on the first user interaction to work
+    // around browsers' autoplay policy.
+    #[cfg(target_arch = "wasm32")]
+    app.add_systems(Update, unlock_bgm_on_interaction);
+    app
         // Logic systems run first; visual systems run after, ensuring change-detection
         // guards in visual systems always observe the latest game state.
         .configure_sets(Update, GameSet::Logic.before(GameSet::Visuals))
