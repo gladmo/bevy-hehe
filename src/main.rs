@@ -19,9 +19,10 @@ use economy::Economy;
 use items::ItemDatabase;
 use orders::Orders;
 use systems::{
-    handle_cell_interaction, handle_drag_input, handle_order_submit, tick_auto_generators,
-    tick_economy, tick_orders, update_cell_visuals, update_drag_ghost, update_economy_ui,
-    update_item_detail_bar, update_message_bar, update_order_icons, update_orders_ui,
+    animate_rising_stars, handle_cell_interaction, handle_drag_input, handle_order_submit,
+    tick_auto_generators, tick_economy, tick_orders, tick_star_spawners, update_cell_visuals,
+    update_drag_ghost, update_economy_ui, update_item_detail_bar, update_message_bar,
+    update_order_icons, update_orders_ui,
 };
 use ui::{setup_initial_board, setup_ui};
 
@@ -137,6 +138,10 @@ pub(crate) struct AutoGenTimers(pub(crate) std::collections::HashMap<usize, f32>
 #[derive(Resource, Default, Debug)]
 pub(crate) struct EggStorage(pub(crate) std::collections::HashMap<usize, u32>);
 
+/// Accumulated time for spawning rising-star animations on auto-generator cells.
+#[derive(Resource, Default)]
+pub(crate) struct StarSpawnTimer(pub(crate) f32);
+
 /// Temporary message shown in the order panel.
 #[derive(Resource, Default, Debug)]
 pub(crate) struct MessageBar {
@@ -195,14 +200,17 @@ pub(crate) struct DetailName;
 #[derive(Component)]
 pub(crate) struct DetailHint;
 
-/// Tag for the order icon image in each order slot.
+/// Component for a rising white star animation on auto-generator cells.
 #[derive(Component)]
-pub(crate) struct OrderIcon {
-    pub(crate) order_id: u32,
-    /// Last item ID whose icon was loaded into this slot.
-    /// Used to skip redundant `asset_server.load` calls when the order hasn't changed.
-    pub(crate) cached_item_id: Option<String>,
+pub(crate) struct RisingStar {
+    /// Elapsed time since spawn (seconds).
+    pub(crate) elapsed: f32,
+    /// Total lifetime of this star (seconds).
+    pub(crate) lifetime: f32,
 }
+
+/// Interval in seconds between rising-star spawns on auto-generator cells.
+pub(crate) const STAR_SPAWN_INTERVAL: f32 = 2.0;
 
 /// Tag for the 仓库 (warehouse) button in the bottom bar.
 #[derive(Component)]
@@ -237,6 +245,7 @@ fn main() {
     .insert_resource(ItemDatabase::new())
     .insert_resource(AutoGenTimers::default())
     .insert_resource(EggStorage::default())
+    .insert_resource(StarSpawnTimer::default())
     .insert_resource(MessageBar::default())
     .insert_resource(DragState::default())
     .add_systems(Startup, setup_initial_board)
@@ -256,6 +265,7 @@ fn main() {
                 tick_economy,
                 tick_orders,
                 tick_auto_generators,
+                tick_star_spawners,
                 handle_drag_input,
                 handle_cell_interaction,
                 handle_order_submit,
@@ -272,6 +282,7 @@ fn main() {
                 update_order_icons,
                 update_item_detail_bar,
                 update_message_bar,
+                animate_rising_stars,
             )
                 .in_set(GameSet::Visuals),
         )

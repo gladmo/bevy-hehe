@@ -5,16 +5,16 @@ use bevy::prelude::*;
 use crate::board::{Board, BoardCell, BoardGrid, CellImage, BOARD_COLS, BOARD_ROWS};
 use crate::economy::{CoinsLabel, GemsLabel, LevelLabel, StaminaLabel};
 use crate::items::ItemDatabase;
-use crate::orders::{OrderItemText, OrderPanel, OrderRewardText, OrderSubmitButton, OrderTimeText, Orders};
+use crate::orders::{OrderItemIcon, OrderPanel, OrderSubmitButton, Orders};
 use crate::{
-    ActivityButton, DetailHint, DetailIcon, DetailName, DragGhost, MessageLabel, OrderIcon,
+    ActivityButton, DetailHint, DetailIcon, DetailName, DragGhost, MessageLabel,
     SubmitBtn, WarehouseButton, ACCENT, ACCENT_GREEN, BOARD_BG, CELL_EMPTY, CELL_EMPTY_ALT,
     DETAIL_BAR_BG, DETAIL_BAR_H, ORDER_BG, ORDER_SLOT_BG, OVERLAY_ALPHA, TEXT_MAIN, TEXT_MUTED,
     TOP_BAR_BG, TOP_BAR_H,
 };
 
 /// Height of the horizontal order row at the top of the content area.
-pub const ORDER_ROW_H: f32 = 145.0;
+pub const ORDER_ROW_H: f32 = 88.0;
 
 pub(crate) fn setup_initial_board(mut board: ResMut<Board>) {
     board.place(Board::idx(0, 0), "poultry_2");
@@ -277,9 +277,8 @@ fn spawn_order_card(panel: &mut ChildSpawnerCommands, slot: usize, font: &Handle
         .spawn((
             Node {
                 flex_direction: FlexDirection::Row,
-                padding: UiRect::all(px(10.0)),
-                column_gap: px(10.0),
-                min_width: px(260.0),
+                padding: UiRect::axes(px(8.0), px(6.0)),
+                column_gap: px(6.0),
                 flex_shrink: 0.0,
                 border_radius: BorderRadius::all(px(8.0)),
                 border: UiRect::all(px(1.0)),
@@ -291,103 +290,31 @@ fn spawn_order_card(panel: &mut ChildSpawnerCommands, slot: usize, font: &Handle
             BorderColor::all(Color::srgb(0.30, 0.25, 0.18)),
         ))
         .with_children(|s| {
-            // Item icon (left)
-            s.spawn((
-                Node {
-                    width: px(52.0),
-                    height: px(52.0),
-                    flex_shrink: 0.0,
-                    border_radius: BorderRadius::all(px(6.0)),
-                    border: UiRect::all(px(1.0)),
-                    ..default()
-                },
-                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, OVERLAY_ALPHA)),
-                BorderColor::all(Color::srgb(0.28, 0.22, 0.15)),
-                ImageNode::default(),
-                OrderIcon {
-                    order_id: slot as u32,
-                    cached_item_id: None,
-                },
-            ));
-
-            // Info column (center, flex-grow)
-            s.spawn(Node {
-                flex_direction: FlexDirection::Column,
-                row_gap: px(4.0),
-                flex_grow: 1.0,
-                ..default()
-            })
-            .with_children(|col| {
-                // Item name + quantity (reward moved to right column)
-                col.spawn((
-                    Text::new("（空）"),
-                    TextFont {
-                        font: font.clone(),
-                        font_size: 13.0,
+            // Up to 3 item icon slots (hidden by default; shown when order occupies the slot).
+            for item_idx in 0..3usize {
+                s.spawn((
+                    Node {
+                        width: px(60.0),
+                        height: px(60.0),
+                        flex_shrink: 0.0,
+                        border_radius: BorderRadius::all(px(6.0)),
+                        border: UiRect::all(px(1.0)),
+                        display: Display::None,
                         ..default()
                     },
-                    TextColor(TEXT_MUTED),
-                    OrderItemText {
+                    BackgroundColor(Color::srgba(0.0, 0.0, 0.0, OVERLAY_ALPHA)),
+                    BorderColor::all(Color::srgb(0.28, 0.22, 0.15)),
+                    ImageNode::default(),
+                    OrderItemIcon {
                         order_id: slot as u32,
+                        item_index: item_idx as u32,
+                        cached_item_id: None,
                     },
                 ));
-
-                // Time remaining
-                col.spawn((
-                    Text::new(""),
-                    TextFont {
-                        font: font.clone(),
-                        font_size: 11.0,
-                        ..default()
-                    },
-                    TextColor(TEXT_MUTED),
-                    OrderTimeText {
-                        order_id: slot as u32,
-                    },
-                ));
-            });
-
-            // Reward tags column (right side, top-to-bottom)
-            s.spawn(Node {
-                flex_direction: FlexDirection::Column,
-                row_gap: px(4.0),
-                align_items: AlignItems::FlexEnd,
-                justify_content: JustifyContent::Center,
-                flex_shrink: 0.0,
-                ..default()
-            })
-            .with_children(|rewards| {
-                // Coin reward tag
-                rewards
-                    .spawn((
-                        Node {
-                            padding: UiRect::axes(px(6.0), px(3.0)),
-                            border: UiRect::all(px(1.0)),
-                            border_radius: BorderRadius::all(px(4.0)),
-                            ..default()
-                        },
-                        BackgroundColor(Color::srgba(0.50, 0.38, 0.05, 0.40)),
-                        BorderColor::all(Color::srgb(0.55, 0.45, 0.15)),
-                    ))
-                    .with_children(|tag| {
-                        tag.spawn((
-                            Text::new(""),
-                            TextFont {
-                                font: font.clone(),
-                                font_size: 12.0,
-                                ..default()
-                            },
-                            TextColor(Color::srgb(0.95, 0.80, 0.25)),
-                            OrderRewardText {
-                                order_id: slot as u32,
-                            },
-                        ));
-                    });
-            });
+            }
 
             // Complete overlay — absolute, covers the entire card.
-            // Shown (Display::Flex) when an order occupies this slot,
-            // hidden (Display::None) when the slot is empty.
+            // Shown (Display::Flex) only when the board contains all required items.
             s.spawn((
                 Button,
                 Node {
