@@ -2,9 +2,7 @@
 mod components;
 mod types;
 
-pub use components::{
-    format_time, OrderItemText, OrderPanel, OrderRewardText, OrderSubmitButton, OrderTimeText,
-};
+pub use components::{OrderItemIcon, OrderPanel, OrderSubmitButton};
 pub use types::{Order, MAX_ORDERS, ORDER_TEMPLATES};
 
 use bevy::prelude::*;
@@ -34,17 +32,13 @@ impl Orders {
         let mut rng = rand::thread_rng();
         // Try up to 10 times to pick a valid template
         for _ in 0..10 {
-            let template = ORDER_TEMPLATES[rng.gen_range(0..ORDER_TEMPLATES.len())];
-            let (item_id, qty, coins, duration) = template;
-            if let Some(item_def) = db.get(item_id) {
+            let (item_ids, coins) = ORDER_TEMPLATES[rng.gen_range(0..ORDER_TEMPLATES.len())];
+            // Validate that all items in the template exist in the database
+            if item_ids.iter().all(|&id| db.get(id).is_some()) {
                 let order = Order {
                     id: self.next_id,
-                    item_id: item_id.to_string(),
-                    item_name: item_def.name.to_string(),
-                    item_emoji: item_def.emoji.to_string(),
-                    quantity: qty,
+                    items: item_ids.iter().map(|&s| s.to_string()).collect(),
                     coin_reward: coins,
-                    time_remaining_secs: duration,
                 };
                 self.next_id += 1;
                 return Some(order);
@@ -64,48 +58,33 @@ impl Orders {
         }
     }
 
-    /// Tick order timers. Returns IDs of expired orders.
-    pub fn tick(&mut self, delta_secs: f32) -> Vec<u32> {
-        let mut expired = Vec::new();
-        for order in &mut self.orders {
-            order.time_remaining_secs -= delta_secs;
-            if order.time_remaining_secs <= 0.0 {
-                expired.push(order.id);
-            }
-        }
-        if !expired.is_empty() {
-            self.orders.retain(|o| o.time_remaining_secs > 0.0);
-        }
-        expired
-    }
-
     /// Try to fulfill an order using items from the board.
-    /// Returns Some(coin_reward) if fulfilled, None if cannot fulfill.
+    /// Returns Some((coin_reward, cells_to_clear)) if fulfilled, None if cannot fulfill.
     pub fn try_fulfill(
         &mut self,
         order_id: u32,
         board_items: &[Option<String>],
     ) -> Option<(u64, Vec<usize>)> {
         let order = self.orders.iter().find(|o| o.id == order_id)?;
-        let target_id = order.item_id.clone();
-        let needed = order.quantity as usize;
         let reward = order.coin_reward;
+        let required = order.items.clone();
 
-        // Find cells containing the required item
-        let matching: Vec<usize> = board_items
-            .iter()
-            .enumerate()
-            .filter(|(_, item)| item.as_deref() == Some(&target_id))
-            .map(|(i, _)| i)
-            .take(needed)
-            .collect();
-
-        if matching.len() < needed {
-            return None;
+        // Find one cell per required item; track consumed cells in a HashSet for O(1) lookup.
+        let mut used_cells: std::collections::HashSet<usize> = std::collections::HashSet::new();
+        let mut cells_to_remove: Vec<usize> = Vec::new();
+        for item_id in &required {
+            let found = board_items
+                .iter()
+                .enumerate()
+                .find(|(i, cell)| {
+                    cell.as_deref() == Some(item_id.as_str()) && !used_cells.contains(i)
+                })
+                .map(|(i, _)| i)?;
+            used_cells.insert(found);
+            cells_to_remove.push(found);
         }
 
-        let reward_cells = matching[..needed].to_vec();
         self.orders.retain(|o| o.id != order_id);
-        Some((reward, reward_cells))
+        Some((reward, cells_to_remove))
     }
 }
