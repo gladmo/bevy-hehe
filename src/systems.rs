@@ -661,29 +661,35 @@ pub(crate) fn update_orders_ui(
     orders: Res<Orders>,
     mut submit_q: Query<
         (&OrderSubmitButton, &mut Node, &mut BackgroundColor),
-        (
-            With<SubmitBtn>,
-        ),
+        With<SubmitBtn>,
     >,
 ) {
     if !orders.is_changed() && !board.is_changed() {
         return;
     }
 
+    // Build a frequency map of item IDs present on the board (single pass).
+    let mut board_counts: std::collections::HashMap<&str, u32> =
+        std::collections::HashMap::new();
+    for cell in &board.cells {
+        if let Some(id) = &cell.item_id {
+            *board_counts.entry(id.as_str()).or_insert(0) += 1;
+        }
+    }
+
     // Complete overlay: shown when all required items are present on the board.
     for (submit, mut node, mut bg) in &mut submit_q {
         let slot = submit.order_id as usize;
         let can_complete = if let Some(order) = orders.orders.get(slot) {
-            // Check that for each required item there is a matching board cell
-            let mut remaining: Vec<&str> = order.items.iter().map(|s| s.as_str()).collect();
-            for cell in &board.cells {
-                if let Some(id) = &cell.item_id {
-                    if let Some(pos) = remaining.iter().position(|&r| r == id.as_str()) {
-                        remaining.remove(pos);
-                    }
-                }
+            // Count how many of each item the order needs, then verify the board has enough.
+            let mut needed: std::collections::HashMap<&str, u32> =
+                std::collections::HashMap::new();
+            for item in &order.items {
+                *needed.entry(item.as_str()).or_insert(0) += 1;
             }
-            remaining.is_empty()
+            needed
+                .iter()
+                .all(|(&id, &qty)| board_counts.get(id).copied().unwrap_or(0) >= qty)
         } else {
             false
         };

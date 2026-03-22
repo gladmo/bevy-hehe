@@ -69,8 +69,9 @@ impl Orders {
         let reward = order.coin_reward;
         let required = order.items.clone();
 
-        // Find one cell per required item (no cell used twice)
-        let mut used_cells: Vec<usize> = Vec::new();
+        // Find one cell per required item; track consumed cells in a HashSet for O(1) lookup.
+        let mut used_cells: std::collections::HashSet<usize> = std::collections::HashSet::new();
+        let mut cells_to_remove: Vec<usize> = Vec::new();
         for item_id in &required {
             let found = board_items
                 .iter()
@@ -79,10 +80,11 @@ impl Orders {
                     cell.as_deref() == Some(item_id.as_str()) && !used_cells.contains(i)
                 })
                 .map(|(i, _)| i)?;
-            used_cells.push(found);
+            used_cells.insert(found);
+            cells_to_remove.push(found);
         }
 
         self.orders.retain(|o| o.id != order_id);
-        Some((reward, used_cells))
+        Some((reward, cells_to_remove))
     }
 }
