@@ -79,15 +79,15 @@ pub(crate) fn setup_initial_board(mut board: ResMut<Board>) {
     board.place(Board::idx(3, 7), "");
     board.place(Board::idx(4, 7), "");
     board.place(Board::idx(5, 7), "");
-    board.place(Board::idx(6, 7), "");
+    board.place(Board::idx(6, 7), "greenBox_1");
 
-    board.place(Board::idx(0, 8), "");
-    board.place(Board::idx(1, 8), "");
-    board.place(Board::idx(2, 8), "");
-    board.place(Board::idx(3, 8), "");
-    board.place(Board::idx(4, 8), "");
-    board.place(Board::idx(5, 8), "");
-    board.place(Board::idx(6, 8), "");
+    board.place(Board::idx(0, 8), "poultry_6");
+    board.place(Board::idx(1, 8), "teapot_4");
+    board.place(Board::idx(2, 8), "basket_5");
+    board.place(Board::idx(3, 8), "craftBox_5");
+    board.place(Board::idx(4, 8), "dresser_5");
+    board.place(Board::idx(5, 8), "loom_5");
+    board.place(Board::idx(6, 8), "redBox_1");
 }
 
 /// Build the full UI hierarchy.
