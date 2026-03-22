@@ -131,7 +131,7 @@ impl Board {
                     // Clicked on already-selected cell
                     let item_id = clicked_item.as_deref().unwrap_or("");
                     if let Some(item_def) = db.get(item_id) {
-                        if item_def.is_generator {
+                        if item_def.is_generator || item_def.is_auto_generator {
                             // Generator action — handled by caller
                             self.selected = None;
                             return ClickAction::GeneratorActivated(clicked_idx, item_id.to_string());

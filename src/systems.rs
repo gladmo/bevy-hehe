@@ -183,7 +183,11 @@ pub(crate) fn handle_cell_interaction(
                                 pending
                             )
                         } else if item.is_generator {
-                            "— 再次点击生成（耗1体力）".to_string()
+                            if economy.stamina >= 1 {
+                                format!("— 再次点击生成（耗1体力，剩余体力：{}）", economy.stamina)
+                            } else {
+                                "— 体力不足，无法生成子棋".to_string()
+                            }
                         } else if item.merge_result_id.is_some() {
                             "— 点击同类同级棋子合成".to_string()
                         } else {
@@ -755,6 +759,7 @@ pub(crate) fn update_item_detail_bar(
     db: Res<ItemDatabase>,
     asset_server: Res<AssetServer>,
     egg_storage: Res<EggStorage>,
+    economy: Res<Economy>,
     mut name_q: Query<&mut Text, (With<DetailName>, Without<DetailHint>)>,
     mut hint_q: Query<&mut Text, (With<DetailHint>, Without<DetailName>)>,
     mut icon_q: Query<&mut ImageNode, With<DetailIcon>>,
@@ -781,7 +786,14 @@ pub(crate) fn update_item_detail_bar(
                             pending
                         )
                     } else if def.is_generator {
-                        "再次点击消耗 1 体力生成子棋".to_string()
+                        if economy.stamina >= 1 {
+                            format!(
+                                "再次点击消耗 1 体力生成子棋（剩余体力：{}/{}）",
+                                economy.stamina, economy.max_stamina
+                            )
+                        } else {
+                            "体力不足！无法生成子棋（等待体力恢复）".to_string()
+                        }
                     } else if def.merge_result_id.is_some() {
                         "拖拽或点击同类同级棋子可合成升级".to_string()
                     } else {
