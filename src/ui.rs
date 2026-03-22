@@ -19,27 +19,27 @@ pub const ORDER_ROW_H: f32 = 145.0;
 pub(crate) fn setup_initial_board(mut board: ResMut<Board>) {
     board.place(Board::idx(0, 0), "poultry_2");
     board.place(Board::idx(1, 0), "fabric_1");
-    board.place(Board::idx(2, 0), ""); // 小猫
-    board.place(Board::idx(3, 0), "");
-    board.place(Board::idx(4, 0), "");
-    board.place(Board::idx(5, 0), "");
-    board.place(Board::idx(6, 0), "");
+    // board.place(Board::idx(2, 0), ""); // 小猫
+    // board.place(Board::idx(3, 0), "");
+    // board.place(Board::idx(4, 0), "");
+    // board.place(Board::idx(5, 0), "");
+    // board.place(Board::idx(6, 0), "");
 
     board.place(Board::idx(0, 1), "ring_1");
     board.place(Board::idx(1, 1), "dough_7");
     board.place(Board::idx(2, 1), "watermelon_4");
     board.place(Board::idx(3, 1), "coolTea_1");
-    board.place(Board::idx(4, 1), "");
-    board.place(Board::idx(5, 1), "");
-    board.place(Board::idx(6, 1), "");
+    // board.place(Board::idx(4, 1), "");
+    // board.place(Board::idx(5, 1), "");
+    // board.place(Board::idx(6, 1), "");
 
-    board.place(Board::idx(0, 2), ""); // 金币lv1
+    // board.place(Board::idx(0, 2), ""); // 金币lv1
     board.place(Board::idx(1, 2), "dough_7");
     board.place(Board::idx(2, 2), "dough_6");
     board.place(Board::idx(3, 2), "dough_6");
-    board.place(Board::idx(4, 2), "");
-    board.place(Board::idx(5, 2), "");
-    board.place(Board::idx(6, 2), "");
+    // board.place(Board::idx(4, 2), "");
+    // board.place(Board::idx(5, 2), "");
+    // board.place(Board::idx(6, 2), "");
 
     board.place(Board::idx(0, 3), "dough_4");
     board.place(Board::idx(1, 3), "basket_1");
@@ -47,7 +47,7 @@ pub(crate) fn setup_initial_board(mut board: ResMut<Board>) {
     board.place(Board::idx(3, 3), "watermelon_2");
     board.place(Board::idx(4, 3), "dough_2");
     board.place(Board::idx(5, 3), "craftBox_3");
-    board.place(Board::idx(6, 3), "");
+    // board.place(Board::idx(6, 3), "");
 
     board.place(Board::idx(0, 4), "dough_3");
     board.place(Board::idx(1, 4), "basket_1");
@@ -55,7 +55,7 @@ pub(crate) fn setup_initial_board(mut board: ResMut<Board>) {
     board.place(Board::idx(3, 4), "basket_3");
     board.place(Board::idx(4, 4), "dough_5");
     board.place(Board::idx(5, 4), "coolTea_3");
-    board.place(Board::idx(6, 4), "");
+    // board.place(Board::idx(6, 4), "");
 
     board.place(Board::idx(0, 5), "teapot_1");
     board.place(Board::idx(1, 5), "watermelon_3");
@@ -65,20 +65,20 @@ pub(crate) fn setup_initial_board(mut board: ResMut<Board>) {
     board.place(Board::idx(5, 5), "watermelon_3");
     board.place(Board::idx(6, 5), "fabric_3");
 
-    board.place(Board::idx(0, 6), "");
+    // board.place(Board::idx(0, 6), "");
     board.place(Board::idx(1, 6), "ring_1");
     board.place(Board::idx(2, 6), "teapot_2");
-    board.place(Board::idx(3, 6), ""); // 三条小鱼干
+    // board.place(Board::idx(3, 6), ""); // 三条小鱼干
     board.place(Board::idx(4, 6), "poultry_1");
     board.place(Board::idx(5, 6), "dresser_2");
-    board.place(Board::idx(6, 6), "");
+    // board.place(Board::idx(6, 6), "");
 
-    board.place(Board::idx(0, 7), "");
-    board.place(Board::idx(1, 7), "");
-    board.place(Board::idx(2, 7), "");
-    board.place(Board::idx(3, 7), "");
-    board.place(Board::idx(4, 7), "");
-    board.place(Board::idx(5, 7), "");
+    // board.place(Board::idx(0, 7), "");
+    // board.place(Board::idx(1, 7), "");
+    // board.place(Board::idx(2, 7), "");
+    // board.place(Board::idx(3, 7), "");
+    // board.place(Board::idx(4, 7), "");
+    // board.place(Board::idx(5, 7), "");
     board.place(Board::idx(6, 7), "greenBox_1");
 
     board.place(Board::idx(0, 8), "poultry_6");
