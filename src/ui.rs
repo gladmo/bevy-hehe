@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use crate::board::{Board, BoardCell, BoardGrid, CellImage, BOARD_COLS, BOARD_ROWS};
 use crate::economy::{CoinsLabel, GemsLabel, LevelLabel, StaminaLabel};
 use crate::items::ItemDatabase;
-use crate::orders::{OrderItemText, OrderPanel, OrderSubmitButton, OrderTimeText, Orders};
+use crate::orders::{OrderItemText, OrderPanel, OrderRewardText, OrderSubmitButton, OrderTimeText, Orders};
 use crate::{
     ActivityButton, DetailHint, DetailIcon, DetailName, DragGhost, MessageLabel, OrderIcon,
     SubmitBtn, WarehouseButton, ACCENT, ACCENT_GREEN, BOARD_BG, CELL_EMPTY, CELL_EMPTY_ALT,
@@ -279,11 +279,12 @@ fn spawn_order_card(panel: &mut ChildSpawnerCommands, slot: usize, font: &Handle
                 flex_direction: FlexDirection::Row,
                 padding: UiRect::all(px(10.0)),
                 column_gap: px(10.0),
-                min_width: px(240.0),
+                min_width: px(260.0),
                 flex_shrink: 0.0,
                 border_radius: BorderRadius::all(px(8.0)),
                 border: UiRect::all(px(1.0)),
                 align_items: AlignItems::Center,
+                overflow: Overflow::hidden(),
                 ..default()
             },
             BackgroundColor(ORDER_SLOT_BG),
@@ -309,7 +310,7 @@ fn spawn_order_card(panel: &mut ChildSpawnerCommands, slot: usize, font: &Handle
                 },
             ));
 
-            // Text + button column (right)
+            // Info column (center, flex-grow)
             s.spawn(Node {
                 flex_direction: FlexDirection::Column,
                 row_gap: px(4.0),
@@ -317,7 +318,7 @@ fn spawn_order_card(panel: &mut ChildSpawnerCommands, slot: usize, font: &Handle
                 ..default()
             })
             .with_children(|col| {
-                // Item description
+                // Item name + quantity (reward moved to right column)
                 col.spawn((
                     Text::new("（空）"),
                     TextFont {
@@ -344,37 +345,79 @@ fn spawn_order_card(panel: &mut ChildSpawnerCommands, slot: usize, font: &Handle
                         order_id: slot as u32,
                     },
                 ));
+            });
 
-                // Submit button
-                col.spawn((
-                    Button,
-                    Node {
-                        width: percent(100.0),
-                        height: px(26.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        border: UiRect::all(px(1.0)),
-                        border_radius: BorderRadius::all(px(4.0)),
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgb(0.20, 0.20, 0.18)),
-                    BorderColor::all(Color::srgb(0.35, 0.30, 0.20)),
-                    OrderSubmitButton {
-                        order_id: slot as u32,
-                    },
-                    SubmitBtn,
-                ))
-                .with_children(|btn| {
-                    btn.spawn((
-                        Text::new("提交"),
-                        TextFont {
-                            font: font.clone(),
-                            font_size: 12.0,
+            // Reward tags column (right side, top-to-bottom)
+            s.spawn(Node {
+                flex_direction: FlexDirection::Column,
+                row_gap: px(4.0),
+                align_items: AlignItems::FlexEnd,
+                justify_content: JustifyContent::Center,
+                flex_shrink: 0.0,
+                ..default()
+            })
+            .with_children(|rewards| {
+                // Coin reward tag
+                rewards
+                    .spawn((
+                        Node {
+                            padding: UiRect::axes(px(6.0), px(3.0)),
+                            border: UiRect::all(px(1.0)),
+                            border_radius: BorderRadius::all(px(4.0)),
                             ..default()
                         },
-                        TextColor(TEXT_MUTED),
-                    ));
-                });
+                        BackgroundColor(Color::srgba(0.50, 0.38, 0.05, 0.40)),
+                        BorderColor::all(Color::srgb(0.55, 0.45, 0.15)),
+                    ))
+                    .with_children(|tag| {
+                        tag.spawn((
+                            Text::new(""),
+                            TextFont {
+                                font: font.clone(),
+                                font_size: 12.0,
+                                ..default()
+                            },
+                            TextColor(Color::srgb(0.95, 0.80, 0.25)),
+                            OrderRewardText {
+                                order_id: slot as u32,
+                            },
+                        ));
+                    });
+            });
+
+            // Complete overlay — absolute, covers the entire card.
+            // Shown (Display::Flex) when an order occupies this slot,
+            // hidden (Display::None) when the slot is empty.
+            s.spawn((
+                Button,
+                Node {
+                    position_type: PositionType::Absolute,
+                    left: Val::Px(0.0),
+                    right: Val::Px(0.0),
+                    top: Val::Px(0.0),
+                    bottom: Val::Px(0.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    display: Display::None,
+                    ..default()
+                },
+                BackgroundColor(Color::srgba(0.12, 0.40, 0.12, 0.82)),
+                BorderColor::all(Color::srgba(0.0, 0.0, 0.0, 0.0)),
+                OrderSubmitButton {
+                    order_id: slot as u32,
+                },
+                SubmitBtn,
+            ))
+            .with_children(|btn| {
+                btn.spawn((
+                    Text::new("✓ 完成"),
+                    TextFont {
+                        font: font.clone(),
+                        font_size: 20.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgb(0.85, 1.0, 0.85)),
+                ));
             });
         });
 }

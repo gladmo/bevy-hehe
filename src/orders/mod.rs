@@ -3,7 +3,7 @@ mod components;
 mod types;
 
 pub use components::{
-    format_time, OrderItemText, OrderPanel, OrderSubmitButton, OrderTimeText,
+    format_time, OrderItemText, OrderPanel, OrderRewardText, OrderSubmitButton, OrderTimeText,
 };
 pub use types::{Order, MAX_ORDERS, ORDER_TEMPLATES};
 

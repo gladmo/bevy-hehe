@@ -120,7 +120,6 @@ pub(crate) const TEXT_MUTED: Color = Color::srgb(0.65, 0.60, 0.48);
 pub(crate) const ACCENT: Color = Color::srgb(0.88, 0.72, 0.30);
 pub(crate) const ACCENT_GREEN: Color = Color::srgb(0.40, 0.80, 0.45);
 pub(crate) const ORDER_SLOT_BG: Color = Color::srgb(0.18, 0.14, 0.10);
-pub(crate) const ORDER_SUBMIT_BG: Color = Color::srgb(0.25, 0.45, 0.20);
 /// Semi-transparent dark overlay used on icon/card backgrounds.
 pub(crate) const OVERLAY_ALPHA: f32 = 0.25;
 
