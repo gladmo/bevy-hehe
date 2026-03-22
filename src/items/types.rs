@@ -197,7 +197,7 @@ impl ItemDef {
             name,
             emoji,
             icon_path,
-            is_generator: true,
+            is_generator: false,
             is_auto_generator: true,
             generates,
             generates_id: Some(generates_id),
