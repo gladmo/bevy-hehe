@@ -881,13 +881,13 @@ pub(crate) fn spawn_rising_stars(
             *timer -= STAR_SPAWN_INTERVAL;
 
             // Spawn two stars at slightly different horizontal offsets with staggered starts.
-            for (h_offset, start_age) in [(-7.0f32, 0.0f32), (7.0, 0.4)] {
+            for (x_offset, start_age) in [(-7.0f32, 0.0f32), (7.0, 0.4)] {
                 commands.entity(entity).with_children(|parent| {
                     parent.spawn((
                         Node {
                             position_type: PositionType::Absolute,
                             top: Val::Px(10.0),
-                            left: Val::Px(24.0 + h_offset),
+                            left: Val::Px(24.0 + x_offset),
                             width: Val::Px(12.0),
                             height: Val::Px(12.0),
                             justify_content: JustifyContent::Center,
@@ -927,7 +927,7 @@ pub(crate) fn animate_rising_stars(
             continue;
         }
         let t = (star.age / star.max_age).clamp(0.0, 1.0);
-        // Rise: top decreases from 10 → -38 px (moves upward)
+        // Rise: top moves from 10 px to -38 px (10 - 48×t), a total of 48 px upward.
         node.top = Val::Px(10.0 - 48.0 * t);
         // Fade: alpha 0.9 → 0
         color.0 = Color::srgba(1.0, 1.0, 1.0, 0.9 * (1.0 - t));
