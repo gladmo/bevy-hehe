@@ -35,32 +35,32 @@ pub(crate) fn setup_initial_board(mut board: ResMut<Board>) {
 
     board.place(Board::idx(0, 2), "");
     board.place(Board::idx(1, 2), "");
-    board.place(Board::idx(2, 2), "dough_5");
+    board.place(Board::idx(2, 2), "dough_6");
     board.place(Board::idx(3, 2), "");
     board.place(Board::idx(4, 2), "");
     board.place(Board::idx(5, 2), "");
     board.place(Board::idx(6, 2), "");
 
-    board.place(Board::idx(0, 3), "");
+    board.place(Board::idx(0, 3), "dough_4");
     board.place(Board::idx(1, 3), "basket_1");
-    board.place(Board::idx(2, 3), "basket_1");
-    board.place(Board::idx(3, 3), "");
+    board.place(Board::idx(2, 3), "dough_3");
+    board.place(Board::idx(3, 3), "watermelon_2");
     board.place(Board::idx(4, 3), "");
     board.place(Board::idx(5, 3), "");
     board.place(Board::idx(6, 3), "");
 
-    board.place(Board::idx(0, 4), "dough_2");
+    board.place(Board::idx(0, 4), "dough_3");
     board.place(Board::idx(1, 4), "basket_1");
-    board.place(Board::idx(2, 4), "basket_1");
+    board.place(Board::idx(2, 4), "basket_2");
     board.place(Board::idx(3, 4), "basket_3");
-    board.place(Board::idx(4, 4), "dough_3");
+    board.place(Board::idx(4, 4), "dough_5");
     board.place(Board::idx(5, 4), "");
     board.place(Board::idx(6, 4), "");
 
     board.place(Board::idx(0, 5), "");
     board.place(Board::idx(1, 5), "watermelon_3");
     board.place(Board::idx(2, 5), "watermelon_1");
-    board.place(Board::idx(3, 5), "dough_3");
+    board.place(Board::idx(3, 5), "dough_5");
     board.place(Board::idx(4, 5), "");
     board.place(Board::idx(5, 5), "");
     board.place(Board::idx(6, 5), "");
