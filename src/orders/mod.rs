@@ -2,9 +2,7 @@
 mod components;
 mod types;
 
-pub use components::{
-    format_time, OrderItemText, OrderPanel, OrderSubmitButton, OrderTimeText,
-};
+pub use components::{OrderItemIcon, OrderPanel, OrderSubmitButton};
 pub use types::{Order, MAX_ORDERS, ORDER_TEMPLATES};
 
 use bevy::prelude::*;
@@ -32,19 +30,15 @@ impl Orders {
     /// Generate a new random order using the item database.
     pub fn generate_order(&mut self, db: &ItemDatabase) -> Option<Order> {
         let mut rng = rand::thread_rng();
-        // Try up to 10 times to pick a valid template
-        for _ in 0..10 {
+        // Try up to 20 times to pick a valid template (all items must exist in DB)
+        for _ in 0..20 {
             let template = ORDER_TEMPLATES[rng.gen_range(0..ORDER_TEMPLATES.len())];
-            let (item_id, qty, coins, duration) = template;
-            if let Some(item_def) = db.get(item_id) {
+            let (item_ids, coins) = template;
+            if item_ids.iter().all(|id| db.get(id).is_some()) {
                 let order = Order {
                     id: self.next_id,
-                    item_id: item_id.to_string(),
-                    item_name: item_def.name.to_string(),
-                    item_emoji: item_def.emoji.to_string(),
-                    quantity: qty,
+                    items: item_ids.iter().map(|s| s.to_string()).collect(),
                     coin_reward: coins,
-                    time_remaining_secs: duration,
                 };
                 self.next_id += 1;
                 return Some(order);
@@ -64,48 +58,51 @@ impl Orders {
         }
     }
 
-    /// Tick order timers. Returns IDs of expired orders.
-    pub fn tick(&mut self, delta_secs: f32) -> Vec<u32> {
-        let mut expired = Vec::new();
-        for order in &mut self.orders {
-            order.time_remaining_secs -= delta_secs;
-            if order.time_remaining_secs <= 0.0 {
-                expired.push(order.id);
+    /// Check whether the board currently contains all items required by `order`.
+    pub fn can_fulfill(order: &Order, board_items: &[Option<String>]) -> bool {
+        let mut remaining: Vec<Option<&str>> =
+            board_items.iter().map(|c| c.as_deref()).collect();
+        for item_id in &order.items {
+            if let Some(pos) = remaining
+                .iter()
+                .position(|c| *c == Some(item_id.as_str()))
+            {
+                remaining[pos] = None;
+            } else {
+                return false;
             }
         }
-        if !expired.is_empty() {
-            self.orders.retain(|o| o.time_remaining_secs > 0.0);
-        }
-        expired
+        true
     }
 
     /// Try to fulfill an order using items from the board.
-    /// Returns Some(coin_reward) if fulfilled, None if cannot fulfill.
+    /// Returns `Some((coin_reward, cells_to_clear))` on success, `None` otherwise.
     pub fn try_fulfill(
         &mut self,
         order_id: u32,
         board_items: &[Option<String>],
     ) -> Option<(u64, Vec<usize>)> {
         let order = self.orders.iter().find(|o| o.id == order_id)?;
-        let target_id = order.item_id.clone();
-        let needed = order.quantity as usize;
+        let needed_items = order.items.clone();
         let reward = order.coin_reward;
 
-        // Find cells containing the required item
-        let matching: Vec<usize> = board_items
+        // Find one cell for each required item (each consumed once).
+        let mut remaining: Vec<Option<(usize, &str)>> = board_items
             .iter()
             .enumerate()
-            .filter(|(_, item)| item.as_deref() == Some(&target_id))
-            .map(|(i, _)| i)
-            .take(needed)
+            .map(|(i, c)| c.as_deref().map(|s| (i, s)))
             .collect();
 
-        if matching.len() < needed {
-            return None;
+        let mut cells_to_clear = Vec::new();
+        for item_id in &needed_items {
+            let pos = remaining
+                .iter()
+                .position(|entry| entry.map(|(_, id)| id) == Some(item_id.as_str()))?;
+            let (cell_idx, _) = remaining[pos].take().unwrap();
+            cells_to_clear.push(cell_idx);
         }
 
-        let reward_cells = matching[..needed].to_vec();
         self.orders.retain(|o| o.id != order_id);
-        Some((reward, reward_cells))
+        Some((reward, cells_to_clear))
     }
 }

@@ -3,29 +3,20 @@ use bevy::prelude::*;
 
 use crate::{
     AutoGenTimers, EggStorage, DetailHint, DetailIcon, DetailName, DragGhost, DragState,
-    MessageBar, MessageLabel, OrderIcon, SubmitBtn, ACCENT, CELL_EMPTY, CELL_EMPTY_ALT,
-    CELL_HOVERED, CELL_SELECTED, DRAG_THRESHOLD_PIXELS, ORDER_SUBMIT_BG, SECONDS_PER_MINUTE,
+    MessageBar, MessageLabel, RisingStar, StarSpawnTimers, SubmitBtn, ACCENT, CELL_EMPTY,
+    CELL_EMPTY_ALT, CELL_HOVERED, CELL_SELECTED, DRAG_THRESHOLD_PIXELS, SECONDS_PER_MINUTE,
 };
 use crate::board::{Board, BoardCell, CellImage, ClickAction, BOARD_COLS};
 use crate::economy::{CoinsLabel, Economy, GemsLabel, LevelLabel, StaminaLabel};
 use crate::items::ItemDatabase;
-use crate::orders::{format_time, OrderItemText, OrderSubmitButton, OrderTimeText, Orders};
+use crate::orders::{OrderItemIcon, OrderSubmitButton, Orders};
 
 pub(crate) fn tick_economy(time: Res<Time>, mut economy: ResMut<Economy>) {
     economy.tick(time.delta_secs());
 }
 
-pub(crate) fn tick_orders(
-    time: Res<Time>,
-    mut orders: ResMut<Orders>,
-    db: Res<ItemDatabase>,
-    mut message: ResMut<MessageBar>,
-) {
-    let expired = orders.tick(time.delta_secs());
-    if !expired.is_empty() {
-        message.set(format!("{} 个订单已超时！", expired.len()));
-        orders.fill_orders(&db);
-    }
+pub(crate) fn tick_orders(mut orders: ResMut<Orders>, db: Res<ItemDatabase>) {
+    orders.fill_orders(&db);
 }
 
 pub(crate) fn tick_auto_generators(
@@ -229,9 +220,6 @@ pub(crate) fn handle_order_submit(
         let slot = submit_btn.order_id as usize;
         if let Some(order) = orders.orders.get(slot) {
             let order_id = order.id;
-            let item_name = order.item_name.clone();
-            let item_emoji = order.item_emoji.clone();
-            let needed_qty = order.quantity;
             let board_items: Vec<Option<String>> =
                 board.cells.iter().map(|c| c.item_id.clone()).collect();
 
@@ -244,14 +232,7 @@ pub(crate) fn handle_order_submit(
                 economy.add_exp(50);
                 orders.fill_orders(&db);
                 message.set(format!("订单完成！获得 {} 铜板", reward));
-            } else {
-                message.set(format!(
-                    "需要 {}×{} {}，请先合成！",
-                    needed_qty, item_emoji, item_name,
-                ));
             }
-        } else {
-            message.set("此处暂无订单");
         }
     }
 }
@@ -671,63 +652,60 @@ pub(crate) fn update_economy_ui(
     }
 }
 
+/// Update the order panel UI every frame that the orders or board state changes.
+///
+/// - Shows/hides each `OrderItemIcon` based on how many items the order requires.
+/// - Shows/hides the "完成" button based on whether the board has all required items.
 pub(crate) fn update_orders_ui(
     orders: Res<Orders>,
-    mut item_text_q: Query<
-        (&OrderItemText, &mut Text),
-        (Without<OrderTimeText>, Without<SubmitBtn>),
-    >,
-    mut time_text_q: Query<
-        (&OrderTimeText, &mut Text),
-        (Without<OrderItemText>, Without<SubmitBtn>),
-    >,
+    board: Res<Board>,
+    mut icon_node_q: Query<(&OrderItemIcon, &mut Node)>,
     mut submit_q: Query<
-        (&OrderSubmitButton, &mut BackgroundColor, &mut BorderColor),
-        (
-            With<SubmitBtn>,
-            Without<OrderItemText>,
-            Without<OrderTimeText>,
-        ),
+        (&OrderSubmitButton, &mut Node, &mut BackgroundColor, &mut BorderColor),
+        (With<SubmitBtn>, Without<OrderItemIcon>),
     >,
 ) {
-    // Item description only changes when orders are fulfilled or expire (rare).
-    for (slot_cmp, mut text) in &mut item_text_q {
-        let slot = slot_cmp.order_id as usize;
-        let new_text = if let Some(order) = orders.orders.get(slot) {
-            format!(
-                "{} {} ×{}  奖励{}铜板",
-                order.item_emoji, order.item_name, order.quantity, order.coin_reward
-            )
+    if !orders.is_changed() && !board.is_changed() {
+        return;
+    }
+
+    let board_items: Vec<Option<String>> = board.cells.iter().map(|c| c.item_id.clone()).collect();
+
+    // Show/hide item icon nodes based on how many items this slot's order requires.
+    for (icon, mut node) in &mut icon_node_q {
+        let slot = icon.slot_index;
+        let needed_display = if let Some(order) = orders.orders.get(slot) {
+            icon.item_pos < order.items.len()
         } else {
-            "（空）".to_string()
+            false
         };
-        if **text != new_text {
-            **text = new_text;
+        let wanted = if needed_display {
+            Display::Flex
+        } else {
+            Display::None
+        };
+        if node.display != wanted {
+            node.display = wanted;
         }
     }
 
-    // Timer text changes every second; compare to avoid 60 redundant updates per second.
-    for (slot_cmp, mut text) in &mut time_text_q {
-        let slot = slot_cmp.order_id as usize;
-        let new_text = if let Some(order) = orders.orders.get(slot) {
-            format!("剩余：{}", format_time(order.time_remaining_secs))
-        } else {
-            String::new()
-        };
-        if **text != new_text {
-            **text = new_text;
-        }
-    }
-
-    // Submit button colors only change when orders appear or disappear.
-    for (submit, mut bg, mut border) in &mut submit_q {
+    // Show/hide the 完成 button based on fulfillability.
+    for (submit, mut node, mut bg, mut border) in &mut submit_q {
         let slot = submit.order_id as usize;
-        if orders.orders.get(slot).is_some() {
-            bg.set_if_neq(BackgroundColor(ORDER_SUBMIT_BG));
+        let fulfillable = orders
+            .orders
+            .get(slot)
+            .map(|order| Orders::can_fulfill(order, &board_items))
+            .unwrap_or(false);
+
+        let wanted_display = if fulfillable { Display::Flex } else { Display::None };
+        if node.display != wanted_display {
+            node.display = wanted_display;
+        }
+
+        if fulfillable {
+            bg.set_if_neq(BackgroundColor(Color::srgb(0.25, 0.45, 0.20)));
             border.set_if_neq(BorderColor::all(Color::srgb(0.40, 0.65, 0.30)));
-        } else {
-            bg.set_if_neq(BackgroundColor(Color::srgb(0.18, 0.18, 0.16)));
-            border.set_if_neq(BorderColor::all(Color::srgb(0.28, 0.25, 0.20)));
         }
     }
 }
@@ -824,32 +802,33 @@ pub(crate) fn update_item_detail_bar(
     }
 }
 
-/// Refresh the icon image shown in each order slot.
+/// Refresh the icon images shown in each order slot for each required item.
 ///
-/// Uses a per-slot item-ID cache stored on the `OrderIcon` component to avoid
-/// calling `asset_server.load` and marking `ImageNode` as changed on every
-/// frame when the order contents haven't actually changed.
+/// Uses a per-icon item-ID cache to avoid calling `asset_server.load` and marking
+/// `ImageNode` as changed every frame when order contents haven't changed.
 pub(crate) fn update_order_icons(
     orders: Res<Orders>,
     db: Res<ItemDatabase>,
     asset_server: Res<AssetServer>,
-    mut icon_q: Query<(&mut OrderIcon, &mut ImageNode)>,
+    mut icon_q: Query<(&mut OrderItemIcon, &mut ImageNode)>,
 ) {
-    for (mut order_icon, mut img) in &mut icon_q {
-        let slot = order_icon.order_id as usize;
-        let current_item_id = orders.orders.get(slot).map(|o| o.item_id.as_str());
+    for (mut icon, mut img) in &mut icon_q {
+        let slot = icon.slot_index;
+        let current_item_id = orders
+            .orders
+            .get(slot)
+            .and_then(|o| o.items.get(icon.item_pos))
+            .map(|s| s.as_str());
 
-        // Skip if the item in this slot hasn't changed since the last update.
-        if current_item_id == order_icon.cached_item_id.as_deref() {
+        // Skip when the item at this position hasn't changed.
+        if current_item_id == icon.cached_item_id.as_deref() {
             continue;
         }
 
-        // Update the cache. Bypass change detection on OrderIcon itself because
-        // no other system reacts to OrderIcon changes.
-        order_icon.bypass_change_detection().cached_item_id =
+        // Update the cache (bypass change detection — no system reacts to this field).
+        icon.bypass_change_detection().cached_item_id =
             current_item_id.map(|s| s.to_string());
 
-        // Load and apply the new icon (or clear if slot is empty).
         let new_handle = current_item_id
             .and_then(|id| db.get(id))
             .and_then(|def| def.icon_path)
@@ -857,5 +836,100 @@ pub(crate) fn update_order_icons(
             .unwrap_or_default();
 
         img.image = new_handle;
+    }
+}
+
+// ── Rising-star animation for auto-generator cells ────────────────────────────
+
+/// Interval between spawning each batch of rising stars (seconds).
+const STAR_SPAWN_INTERVAL: f32 = 2.0;
+
+/// Spawn small rising white star nodes above each auto-generator board cell.
+///
+/// Stars are spawned as absolute-positioned children of the cell node and
+/// animated upward/fading by [`animate_rising_stars`].
+pub(crate) fn spawn_rising_stars(
+    time: Res<Time>,
+    board: Res<Board>,
+    db: Res<ItemDatabase>,
+    mut star_timers: ResMut<StarSpawnTimers>,
+    cell_query: Query<(Entity, &BoardCell)>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
+    let delta = time.delta_secs();
+    let font: Handle<Font> = asset_server.load("fonts/SourceHanSansSC-Medium.otf");
+
+    for (entity, board_cell) in &cell_query {
+        let idx = board_cell.index;
+        let is_auto_gen = board.cells[idx]
+            .item_id
+            .as_deref()
+            .and_then(|id| db.get(id))
+            .map(|def| def.is_auto_generator)
+            .unwrap_or(false);
+
+        if !is_auto_gen {
+            star_timers.0.remove(&idx);
+            continue;
+        }
+
+        let timer = star_timers.0.entry(idx).or_insert(0.0);
+        *timer += delta;
+
+        if *timer >= STAR_SPAWN_INTERVAL {
+            *timer -= STAR_SPAWN_INTERVAL;
+
+            // Spawn two stars at slightly different horizontal offsets with staggered starts.
+            for (h_offset, start_age) in [(-7.0f32, 0.0f32), (7.0, 0.4)] {
+                commands.entity(entity).with_children(|parent| {
+                    parent.spawn((
+                        Node {
+                            position_type: PositionType::Absolute,
+                            top: Val::Px(10.0),
+                            left: Val::Px(24.0 + h_offset),
+                            width: Val::Px(12.0),
+                            height: Val::Px(12.0),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            ..default()
+                        },
+                        Text::new("✦"),
+                        TextFont {
+                            font: font.clone(),
+                            font_size: 10.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgba(1.0, 1.0, 1.0, 0.9)),
+                        Pickable::IGNORE,
+                        RisingStar {
+                            age: start_age,
+                            max_age: 1.8,
+                        },
+                    ));
+                });
+            }
+        }
+    }
+}
+
+/// Animate rising star nodes: move them upward and fade their alpha, then despawn.
+pub(crate) fn animate_rising_stars(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut star_q: Query<(Entity, &mut RisingStar, &mut Node, &mut TextColor)>,
+) {
+    let delta = time.delta_secs();
+    for (entity, mut star, mut node, mut color) in &mut star_q {
+        star.age += delta;
+        if star.age >= star.max_age {
+            commands.entity(entity).despawn();
+            continue;
+        }
+        let t = (star.age / star.max_age).clamp(0.0, 1.0);
+        // Rise: top decreases from 10 → -38 px (moves upward)
+        node.top = Val::Px(10.0 - 48.0 * t);
+        // Fade: alpha 0.9 → 0
+        color.0 = Color::srgba(1.0, 1.0, 1.0, 0.9 * (1.0 - t));
     }
 }

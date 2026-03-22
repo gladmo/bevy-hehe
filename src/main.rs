@@ -19,9 +19,10 @@ use economy::Economy;
 use items::ItemDatabase;
 use orders::Orders;
 use systems::{
-    handle_cell_interaction, handle_drag_input, handle_order_submit, tick_auto_generators,
-    tick_economy, tick_orders, update_cell_visuals, update_drag_ghost, update_economy_ui,
-    update_item_detail_bar, update_message_bar, update_order_icons, update_orders_ui,
+    animate_rising_stars, handle_cell_interaction, handle_drag_input, handle_order_submit,
+    spawn_rising_stars, tick_auto_generators, tick_economy, tick_orders, update_cell_visuals,
+    update_drag_ghost, update_economy_ui, update_item_detail_bar, update_message_bar,
+    update_order_icons, update_orders_ui,
 };
 use ui::{setup_initial_board, setup_ui};
 
@@ -120,7 +121,6 @@ pub(crate) const TEXT_MUTED: Color = Color::srgb(0.65, 0.60, 0.48);
 pub(crate) const ACCENT: Color = Color::srgb(0.88, 0.72, 0.30);
 pub(crate) const ACCENT_GREEN: Color = Color::srgb(0.40, 0.80, 0.45);
 pub(crate) const ORDER_SLOT_BG: Color = Color::srgb(0.18, 0.14, 0.10);
-pub(crate) const ORDER_SUBMIT_BG: Color = Color::srgb(0.25, 0.45, 0.20);
 /// Semi-transparent dark overlay used on icon/card backgrounds.
 pub(crate) const OVERLAY_ALPHA: f32 = 0.25;
 
@@ -196,15 +196,6 @@ pub(crate) struct DetailName;
 #[derive(Component)]
 pub(crate) struct DetailHint;
 
-/// Tag for the order icon image in each order slot.
-#[derive(Component)]
-pub(crate) struct OrderIcon {
-    pub(crate) order_id: u32,
-    /// Last item ID whose icon was loaded into this slot.
-    /// Used to skip redundant `asset_server.load` calls when the order hasn't changed.
-    pub(crate) cached_item_id: Option<String>,
-}
-
 /// Tag for the 仓库 (warehouse) button in the bottom bar.
 #[derive(Component)]
 pub(crate) struct WarehouseButton;
@@ -212,6 +203,20 @@ pub(crate) struct WarehouseButton;
 /// Tag for the 活动 (activity) button in the bottom bar.
 #[derive(Component)]
 pub(crate) struct ActivityButton;
+
+/// Component attached to a rising star UI node above an auto-generator cell.
+#[derive(Component)]
+pub(crate) struct RisingStar {
+    /// Seconds since this star was spawned.
+    pub(crate) age: f32,
+    /// Lifetime of the star; despawned when `age >= max_age`.
+    pub(crate) max_age: f32,
+}
+
+/// Per-cell countdown timers controlling how often rising stars are spawned.
+/// Key = board cell index; value = accumulated seconds since last star spawn.
+#[derive(Resource, Default, Debug)]
+pub(crate) struct StarSpawnTimers(pub(crate) std::collections::HashMap<usize, f32>);
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
@@ -240,6 +245,7 @@ fn main() {
     .insert_resource(EggStorage::default())
     .insert_resource(MessageBar::default())
     .insert_resource(DragState::default())
+    .insert_resource(StarSpawnTimers::default())
     .add_systems(Startup, setup_initial_board)
     .add_systems(Startup, setup_ui.after(setup_initial_board))
     .add_systems(Startup, setup_bgm);
@@ -273,6 +279,8 @@ fn main() {
                 update_order_icons,
                 update_item_detail_bar,
                 update_message_bar,
+                spawn_rising_stars,
+                animate_rising_stars,
             )
                 .in_set(GameSet::Visuals),
         )

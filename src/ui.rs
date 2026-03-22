@@ -5,16 +5,16 @@ use bevy::prelude::*;
 use crate::board::{Board, BoardCell, BoardGrid, CellImage, BOARD_COLS, BOARD_ROWS};
 use crate::economy::{CoinsLabel, GemsLabel, LevelLabel, StaminaLabel};
 use crate::items::ItemDatabase;
-use crate::orders::{OrderItemText, OrderPanel, OrderSubmitButton, OrderTimeText, Orders};
+use crate::orders::{OrderItemIcon, OrderPanel, OrderSubmitButton, Orders};
 use crate::{
-    ActivityButton, DetailHint, DetailIcon, DetailName, DragGhost, MessageLabel, OrderIcon,
-    SubmitBtn, WarehouseButton, ACCENT, ACCENT_GREEN, BOARD_BG, CELL_EMPTY, CELL_EMPTY_ALT,
-    DETAIL_BAR_BG, DETAIL_BAR_H, ORDER_BG, ORDER_SLOT_BG, OVERLAY_ALPHA, TEXT_MAIN, TEXT_MUTED,
-    TOP_BAR_BG, TOP_BAR_H,
+    ActivityButton, DetailHint, DetailIcon, DetailName, DragGhost, MessageLabel, SubmitBtn,
+    WarehouseButton, ACCENT, ACCENT_GREEN, BOARD_BG, CELL_EMPTY, CELL_EMPTY_ALT, DETAIL_BAR_BG,
+    DETAIL_BAR_H, ORDER_BG, ORDER_SLOT_BG, OVERLAY_ALPHA, TEXT_MAIN, TEXT_MUTED, TOP_BAR_BG,
+    TOP_BAR_H,
 };
 
 /// Height of the horizontal order row at the top of the content area.
-pub const ORDER_ROW_H: f32 = 145.0;
+pub const ORDER_ROW_H: f32 = 105.0;
 
 pub(crate) fn setup_initial_board(mut board: ResMut<Board>) {
     board.place(Board::idx(0, 0), "poultry_2");
@@ -255,7 +255,7 @@ fn spawn_order_row(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
             height: px(ORDER_ROW_H),
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Stretch,
-            padding: UiRect::axes(px(10.0), px(8.0)),
+            padding: UiRect::axes(px(10.0), px(6.0)),
             column_gap: px(10.0),
             overflow: Overflow::scroll_x(),
             border: UiRect::bottom(px(2.0)),
@@ -276,105 +276,83 @@ fn spawn_order_card(panel: &mut ChildSpawnerCommands, slot: usize, font: &Handle
     panel
         .spawn((
             Node {
-                flex_direction: FlexDirection::Row,
-                padding: UiRect::all(px(10.0)),
-                column_gap: px(10.0),
-                min_width: px(240.0),
+                flex_direction: FlexDirection::Column,
+                padding: UiRect::all(px(8.0)),
+                row_gap: px(6.0),
+                min_width: px(196.0),
                 flex_shrink: 0.0,
                 border_radius: BorderRadius::all(px(8.0)),
                 border: UiRect::all(px(1.0)),
                 align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
                 ..default()
             },
             BackgroundColor(ORDER_SLOT_BG),
             BorderColor::all(Color::srgb(0.30, 0.25, 0.18)),
         ))
         .with_children(|s| {
-            // Item icon (left)
-            s.spawn((
-                Node {
-                    width: px(52.0),
-                    height: px(52.0),
-                    flex_shrink: 0.0,
-                    border_radius: BorderRadius::all(px(6.0)),
-                    border: UiRect::all(px(1.0)),
-                    ..default()
-                },
-                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, OVERLAY_ALPHA)),
-                BorderColor::all(Color::srgb(0.28, 0.22, 0.15)),
-                ImageNode::default(),
-                OrderIcon {
-                    order_id: slot as u32,
-                    cached_item_id: None,
-                },
-            ));
-
-            // Text + button column (right)
+            // Icons row: up to 3 large item icons
             s.spawn(Node {
-                flex_direction: FlexDirection::Column,
-                row_gap: px(4.0),
-                flex_grow: 1.0,
+                flex_direction: FlexDirection::Row,
+                column_gap: px(6.0),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
                 ..default()
             })
-            .with_children(|col| {
-                // Item description
-                col.spawn((
-                    Text::new("（空）"),
+            .with_children(|row| {
+                for item_pos in 0..3usize {
+                    row.spawn((
+                        Node {
+                            width: px(54.0),
+                            height: px(54.0),
+                            flex_shrink: 0.0,
+                            border_radius: BorderRadius::all(px(6.0)),
+                            border: UiRect::all(px(1.0)),
+                            display: Display::None, // hidden until an order occupies this slot
+                            ..default()
+                        },
+                        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, OVERLAY_ALPHA)),
+                        BorderColor::all(Color::srgb(0.28, 0.22, 0.15)),
+                        ImageNode::default(),
+                        OrderItemIcon {
+                            slot_index: slot,
+                            item_pos,
+                            cached_item_id: None,
+                        },
+                    ));
+                }
+            });
+
+            // "完成" button — visible only when all required items are on the board
+            s.spawn((
+                Button,
+                Node {
+                    width: percent(90.0),
+                    height: px(26.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    border: UiRect::all(px(1.0)),
+                    border_radius: BorderRadius::all(px(4.0)),
+                    display: Display::None, // hidden until fulfillable
+                    ..default()
+                },
+                BackgroundColor(Color::srgb(0.25, 0.45, 0.20)),
+                BorderColor::all(Color::srgb(0.40, 0.65, 0.30)),
+                OrderSubmitButton {
+                    order_id: slot as u32,
+                },
+                SubmitBtn,
+            ))
+            .with_children(|btn| {
+                btn.spawn((
+                    Text::new("完成"),
                     TextFont {
                         font: font.clone(),
                         font_size: 13.0,
                         ..default()
                     },
-                    TextColor(TEXT_MUTED),
-                    OrderItemText {
-                        order_id: slot as u32,
-                    },
+                    TextColor(TEXT_MAIN),
                 ));
-
-                // Time remaining
-                col.spawn((
-                    Text::new(""),
-                    TextFont {
-                        font: font.clone(),
-                        font_size: 11.0,
-                        ..default()
-                    },
-                    TextColor(TEXT_MUTED),
-                    OrderTimeText {
-                        order_id: slot as u32,
-                    },
-                ));
-
-                // Submit button
-                col.spawn((
-                    Button,
-                    Node {
-                        width: percent(100.0),
-                        height: px(26.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        border: UiRect::all(px(1.0)),
-                        border_radius: BorderRadius::all(px(4.0)),
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgb(0.20, 0.20, 0.18)),
-                    BorderColor::all(Color::srgb(0.35, 0.30, 0.20)),
-                    OrderSubmitButton {
-                        order_id: slot as u32,
-                    },
-                    SubmitBtn,
-                ))
-                .with_children(|btn| {
-                    btn.spawn((
-                        Text::new("提交"),
-                        TextFont {
-                            font: font.clone(),
-                            font_size: 12.0,
-                            ..default()
-                        },
-                        TextColor(TEXT_MUTED),
-                    ));
-                });
             });
         });
 }
