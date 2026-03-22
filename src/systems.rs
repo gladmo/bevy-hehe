@@ -4,12 +4,12 @@ use bevy::prelude::*;
 use crate::{
     AutoGenTimers, EggStorage, DetailHint, DetailIcon, DetailName, DragGhost, DragState,
     MessageBar, MessageLabel, OrderIcon, SubmitBtn, ACCENT, CELL_EMPTY, CELL_EMPTY_ALT,
-    CELL_HOVERED, CELL_SELECTED, DRAG_THRESHOLD_PIXELS, ORDER_SUBMIT_BG, SECONDS_PER_MINUTE,
+    CELL_HOVERED, CELL_SELECTED, DRAG_THRESHOLD_PIXELS, SECONDS_PER_MINUTE,
 };
 use crate::board::{Board, BoardCell, CellImage, ClickAction, BOARD_COLS};
 use crate::economy::{CoinsLabel, Economy, GemsLabel, LevelLabel, StaminaLabel};
 use crate::items::ItemDatabase;
-use crate::orders::{format_time, OrderItemText, OrderSubmitButton, OrderTimeText, Orders};
+use crate::orders::{format_time, OrderItemText, OrderRewardText, OrderSubmitButton, OrderTimeText, Orders};
 
 pub(crate) fn tick_economy(time: Res<Time>, mut economy: ResMut<Economy>) {
     economy.tick(time.delta_secs());
@@ -678,8 +678,12 @@ pub(crate) fn update_orders_ui(
         (&OrderTimeText, &mut Text),
         (Without<OrderItemText>, Without<SubmitBtn>),
     >,
+    mut reward_q: Query<
+        (&OrderRewardText, &mut Text),
+        (Without<OrderItemText>, Without<OrderTimeText>, Without<SubmitBtn>),
+    >,
     mut submit_q: Query<
-        (&OrderSubmitButton, &mut BackgroundColor, &mut BorderColor),
+        (&OrderSubmitButton, &mut Node, &mut BackgroundColor),
         (
             With<SubmitBtn>,
             Without<OrderItemText>,
@@ -687,13 +691,13 @@ pub(crate) fn update_orders_ui(
         ),
     >,
 ) {
-    // Item description only changes when orders are fulfilled or expire (rare).
+    // Item name + quantity (reward is now shown separately on the right).
     for (slot_cmp, mut text) in &mut item_text_q {
         let slot = slot_cmp.order_id as usize;
         let new_text = if let Some(order) = orders.orders.get(slot) {
             format!(
-                "{} {} ×{}  奖励{}铜板",
-                order.item_emoji, order.item_name, order.quantity, order.coin_reward
+                "{} {} ×{}",
+                order.item_emoji, order.item_name, order.quantity
             )
         } else {
             "（空）".to_string()
@@ -716,15 +720,31 @@ pub(crate) fn update_orders_ui(
         }
     }
 
-    // Submit button colors only change when orders appear or disappear.
-    for (submit, mut bg, mut border) in &mut submit_q {
+    // Coin reward tag text.
+    for (slot_cmp, mut text) in &mut reward_q {
+        let slot = slot_cmp.order_id as usize;
+        let new_text = if let Some(order) = orders.orders.get(slot) {
+            format!("💰{}铜板", order.coin_reward)
+        } else {
+            String::new()
+        };
+        if **text != new_text {
+            **text = new_text;
+        }
+    }
+
+    // Complete overlay: show when a slot has an active order, hide when empty.
+    for (submit, mut node, mut bg) in &mut submit_q {
         let slot = submit.order_id as usize;
         if orders.orders.get(slot).is_some() {
-            bg.set_if_neq(BackgroundColor(ORDER_SUBMIT_BG));
-            border.set_if_neq(BorderColor::all(Color::srgb(0.40, 0.65, 0.30)));
+            if node.display != Display::Flex {
+                node.display = Display::Flex;
+            }
+            bg.set_if_neq(BackgroundColor(Color::srgba(0.12, 0.40, 0.12, 0.82)));
         } else {
-            bg.set_if_neq(BackgroundColor(Color::srgb(0.18, 0.18, 0.16)));
-            border.set_if_neq(BorderColor::all(Color::srgb(0.28, 0.25, 0.20)));
+            if node.display != Display::None {
+                node.display = Display::None;
+            }
         }
     }
 }

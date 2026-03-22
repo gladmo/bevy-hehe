@@ -26,6 +26,12 @@ pub struct OrderItemText {
     pub order_id: u32,
 }
 
+/// Tag component for the reward text label in each order slot.
+#[derive(Component, Debug, Clone)]
+pub struct OrderRewardText {
+    pub order_id: u32,
+}
+
 /// Tag component for the order panel container.
 #[derive(Component, Debug)]
 pub struct OrderPanel;
