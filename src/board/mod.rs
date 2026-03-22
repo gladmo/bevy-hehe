@@ -79,6 +79,7 @@ impl Board {
     }
 
     /// Find an empty cell adjacent (8-directional) to the given index.
+    #[allow(dead_code)]
     pub fn adjacent_empty(&self, idx: usize) -> Option<usize> {
         let (col, row) = Self::pos(idx);
         let col = col as isize;
@@ -101,12 +102,30 @@ impl Board {
         None
     }
 
-    /// Place item in adjacent empty cell, or first empty cell if no adjacent.
+    /// Find the empty cell closest to the given index (by Chebyshev distance).
+    /// Returns None if the board is completely full.
+    pub fn nearest_empty(&self, idx: usize) -> Option<usize> {
+        let (col, row) = Self::pos(idx);
+        let col = col as isize;
+        let row = row as isize;
+        self.cells
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| c.item_id.is_none())
+            .min_by_key(|(i, _)| {
+                let (ec, er) = Self::pos(*i);
+                let dc = (ec as isize - col).abs();
+                let dr = (er as isize - row).abs();
+                dc.max(dr) // Chebyshev distance
+            })
+            .map(|(i, _)| i)
+    }
+
+    /// Place item in the empty cell closest to `source_idx` (by Chebyshev distance).
+    /// Returns false if the board is completely full.
     pub fn place_near(&mut self, source_idx: usize, item_id: &str) -> bool {
-        if let Some(ni) = self.adjacent_empty(source_idx) {
+        if let Some(ni) = self.nearest_empty(source_idx) {
             self.place(ni, item_id)
-        } else if let Some(fi) = self.first_empty() {
-            self.place(fi, item_id)
         } else {
             false
         }

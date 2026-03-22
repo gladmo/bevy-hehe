@@ -65,22 +65,19 @@ pub(crate) fn tick_auto_generators(
             if *stored < 6 {
                 *stored += 1;
             }
-            // Only warn when storage is full and no adjacent space is available
+            // Warn when the board is completely full and there are pending eggs
             // (check here so the message fires once per interval, not every frame)
             let stored_now = *egg_storage.0.get(&idx).unwrap_or(&0);
-            if stored_now >= 6 && board.adjacent_empty(idx).is_none() {
-                message.set(format!(
-                    "老母鸡存蛋已满（{}枚），请为周围腾出空位，或点击放置到最近空位！",
-                    stored_now
-                ));
+            if stored_now > 0 && board.first_empty().is_none() {
+                message.set("棋盘已满，无法放置鸡蛋！");
             }
         }
 
-        // Try to auto-place a pending egg to an adjacent empty cell each frame
+        // Try to auto-place a pending egg to the nearest empty cell each frame
         let stored = *egg_storage.0.get(&idx).unwrap_or(&0);
         if stored > 0 {
-            if let Some(adj_idx) = board.adjacent_empty(idx) {
-                board.place(adj_idx, &gen_id);
+            if let Some(near_idx) = board.nearest_empty(idx) {
+                board.place(near_idx, &gen_id);
                 let s = egg_storage.0.entry(idx).or_insert(0);
                 *s = s.saturating_sub(1);
             }
