@@ -7,7 +7,7 @@ use crate::economy::{CoinsLabel, GemsLabel, LevelLabel, StaminaLabel};
 use crate::items::ItemDatabase;
 use crate::orders::{OrderItemIcon, OrderPanel, OrderSubmitButton, Orders};
 use crate::{
-    ActivityButton, DetailHint, DetailIcon, DetailName, DragGhost, MessageLabel,
+    ActivityButton, DetailHint, DetailIcon, DetailName, DragGhost, MessageLabel, PreloadedImages,
     SubmitBtn, WarehouseButton, ACCENT, ACCENT_GREEN, BOARD_BG, CELL_EMPTY, CELL_EMPTY_ALT,
     DETAIL_BAR_BG, DETAIL_BAR_H, ORDER_BG, ORDER_SLOT_BG, OVERLAY_ALPHA, TEXT_MAIN, TEXT_MUTED,
     TOP_BAR_BG, TOP_BAR_H,
@@ -15,6 +15,23 @@ use crate::{
 
 /// Height of the horizontal order row at the top of the content area.
 pub const ORDER_ROW_H: f32 = 88.0;
+
+/// Startup system: load every item icon into the asset server at game start.
+///
+/// Storing the returned [`Handle<Image>`] values in [`PreloadedImages`] keeps
+/// the assets alive so they are always ready in the GPU texture cache when any
+/// board cell or order card first tries to render them.
+pub(crate) fn preload_images(
+    db: Res<ItemDatabase>,
+    asset_server: Res<AssetServer>,
+    mut preloaded: ResMut<PreloadedImages>,
+) {
+    for item in db.items.values() {
+        if let Some(path) = item.icon_path {
+            preloaded.0.push(asset_server.load(path));
+        }
+    }
+}
 
 pub(crate) fn setup_initial_board(mut board: ResMut<Board>) {
     board.place(Board::idx(0, 0), "poultry_2");
