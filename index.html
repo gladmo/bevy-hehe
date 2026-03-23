@@ -84,7 +84,7 @@
   <body>
     <div id="loading">
       <div class="spinner"></div>
-      <span>合合游戏加载中…</span>
+      <span id="loading-status">合合游戏加载中…</span>
       <div class="progress-bar-wrap">
         <div class="progress-bar-fill" id="progress-fill"></div>
       </div>
@@ -98,9 +98,11 @@
 
       const fill = document.getElementById("progress-fill");
       const text = document.getElementById("progress-text");
+      const statusLabel = document.getElementById("loading-status");
 
+      // Cap ratio at 1 so the bar never visually exceeds 100%.
       function setProgress(ratio) {
-        const pct = Math.round(ratio * 100);
+        const pct = Math.round(Math.min(ratio, 1) * 100);
         fill.style.width = pct + "%";
         text.textContent = pct + "%";
       }
@@ -112,10 +114,23 @@
         }
 
         const contentLength = response.headers.get("content-length");
-        const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+        // When the server uses gzip / brotli compression the browser streams
+        // *decompressed* bytes, but Content-Length reflects the *compressed*
+        // size.  Using it for progress would cause loaded > total (> 100%).
+        // Detect this and fall back to indeterminate progress in that case.
+        const contentEncoding = response.headers.get("content-encoding");
+        const isCompressed =
+          contentEncoding != null &&
+          contentEncoding.toLowerCase() !== "identity";
+
+        // Only track real byte-level progress when we have a reliable total.
+        const total =
+          !isCompressed && contentLength ? parseInt(contentLength, 10) : 0;
         let loaded = 0;
 
         if (!response.body) {
+          // No streaming support — download all at once without progress.
           const buffer = await response.arrayBuffer();
           return buffer;
         }
@@ -128,6 +143,7 @@
           if (done) break;
           chunks.push(value);
           loaded += value.length;
+          // Only update the bar when we have a trustworthy total.
           if (total > 0) setProgress(loaded / total);
         }
 
@@ -142,7 +158,10 @@
 
       fetchWasmWithProgress("./bevy-hehe_bg.wasm")
         .then((wasmBuffer) => {
+          // WASM download finished — show 100 % and switch status text before
+          // the (potentially slow) compilation + instantiation step.
           setProgress(1);
+          if (statusLabel) statusLabel.textContent = "正在初始化…";
           return init(wasmBuffer);
         })
         .then(() => {
