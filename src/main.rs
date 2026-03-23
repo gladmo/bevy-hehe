@@ -19,8 +19,9 @@ use economy::Economy;
 use items::ItemDatabase;
 use orders::Orders;
 use systems::{
-    animate_rising_stars, handle_cell_interaction, handle_drag_input, handle_order_submit,
-    tick_auto_generators, tick_economy, tick_orders, tick_star_spawners, update_cell_visuals,
+    animate_attract_cells, animate_attract_symbols, animate_rising_stars, handle_cell_interaction,
+    handle_drag_input, handle_order_submit, tick_attract_animation, tick_auto_generators,
+    tick_economy, tick_idle_timer, tick_orders, tick_star_spawners, update_cell_visuals,
     update_drag_ghost, update_economy_ui, update_item_detail_bar, update_message_bar,
     update_order_icons, update_orders_ui,
 };
@@ -212,6 +213,17 @@ pub(crate) struct RisingStar {
 /// Interval in seconds between rising-star spawns on auto-generator cells.
 pub(crate) const STAR_SPAWN_INTERVAL: f32 = 2.0;
 
+// ── Attract animation ─────────────────────────────────────────────────────────
+
+/// Seconds of user inactivity before the attract animation starts.
+pub(crate) const ATTRACT_IDLE_SECS: f32 = 5.0;
+/// Minimum seconds each pair is highlighted.
+pub(crate) const ATTRACT_MIN_DURATION: f32 = 1.5;
+/// Maximum seconds each pair is highlighted.
+pub(crate) const ATTRACT_MAX_DURATION: f32 = 2.0;
+/// Seconds between consecutive sparkle-wave spawns on a highlighted pair.
+pub(crate) const ATTRACT_SPARKLE_INTERVAL: f32 = 0.5;
+
 /// Tag for the 仓库 (warehouse) button in the bottom bar.
 #[derive(Component)]
 pub(crate) struct WarehouseButton;
@@ -219,6 +231,62 @@ pub(crate) struct WarehouseButton;
 /// Tag for the 活动 (activity) button in the bottom bar.
 #[derive(Component)]
 pub(crate) struct ActivityButton;
+
+// ── Idle / Attract-animation resources ───────────────────────────────────────
+
+/// Tracks elapsed time since the last user input (mouse/touch/key).
+///
+/// Reset to zero on every interaction; incremented every frame. Used by
+/// [`tick_attract_animation`] to decide when to start the hint animation.
+#[derive(Resource, Default)]
+pub(crate) struct IdleTimer {
+    pub(crate) elapsed: f32,
+}
+
+/// State machine for the idle "attract" animation that shows mergeable pairs.
+#[derive(Resource)]
+pub(crate) struct AttractAnimState {
+    /// Ordered list of all mergeable pairs `(cell_idx_a, cell_idx_b)` on the board.
+    pub(crate) pairs: Vec<(usize, usize)>,
+    /// Index into `pairs` for the currently displayed pair.
+    pub(crate) current_pair: usize,
+    /// Elapsed time (secs) the current pair has been shown.
+    pub(crate) pair_elapsed: f32,
+    /// Duration (secs) to display the current pair before advancing.
+    pub(crate) pair_duration: f32,
+    /// Accumulated time towards the next sparkle-wave spawn.
+    pub(crate) sparkle_timer: f32,
+    /// Whether the attract animation is currently running.
+    pub(crate) active: bool,
+}
+
+impl Default for AttractAnimState {
+    fn default() -> Self {
+        Self {
+            pairs: Vec::new(),
+            current_pair: 0,
+            pair_elapsed: 0.0,
+            pair_duration: ATTRACT_MIN_DURATION,
+            // Start timer past the threshold so the first sparkle spawns immediately.
+            sparkle_timer: ATTRACT_SPARKLE_INTERVAL,
+            active: false,
+        }
+    }
+}
+
+/// Component for the small golden "✦" sparkle children spawned on attracted cells.
+///
+/// Each sparkle moves from the cell centre toward the direction of the other
+/// cell in the pair, then fades out and despawns.
+#[derive(Component)]
+pub(crate) struct AttractSymbol {
+    pub(crate) elapsed: f32,
+    pub(crate) lifetime: f32,
+    /// Signed direction along the column axis (+1 = right, −1 = left, 0 = none).
+    pub(crate) dir_x: f32,
+    /// Signed direction along the row axis (+1 = down, −1 = up, 0 = none).
+    pub(crate) dir_y: f32,
+}
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
@@ -248,6 +316,8 @@ fn main() {
     .insert_resource(StarSpawnTimer::default())
     .insert_resource(MessageBar::default())
     .insert_resource(DragState::default())
+    .insert_resource(IdleTimer::default())
+    .insert_resource(AttractAnimState::default())
     .add_systems(Startup, setup_initial_board)
     .add_systems(Startup, setup_ui.after(setup_initial_board))
     .add_systems(Startup, setup_bgm);
@@ -266,6 +336,8 @@ fn main() {
                 tick_orders,
                 tick_auto_generators,
                 tick_star_spawners,
+                tick_idle_timer,
+                tick_attract_animation,
                 handle_drag_input,
                 handle_cell_interaction,
                 handle_order_submit,
@@ -283,6 +355,8 @@ fn main() {
                 update_item_detail_bar,
                 update_message_bar,
                 animate_rising_stars,
+                animate_attract_symbols,
+                animate_attract_cells.after(update_cell_visuals),
             )
                 .in_set(GameSet::Visuals),
         )
