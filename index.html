@@ -137,14 +137,24 @@
 
         const reader = response.body.getReader();
         const chunks = [];
+        let chunkCount = 0;
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           chunks.push(value);
           loaded += value.length;
-          // Only update the bar when we have a trustworthy total.
-          if (total > 0) setProgress(loaded / total);
+          chunkCount++;
+          if (total > 0) {
+            // Real byte-level progress when we have a trustworthy total.
+            setProgress(loaded / total);
+          } else {
+            // Compressed or unknown total: simulate progress with an
+            // asymptotic curve that approaches ~90% so the bar visibly
+            // advances during the download and still has room to reach
+            // 100% once the WASM finishes initialising.
+            setProgress(0.9 * (1 - Math.exp(-chunkCount / 20)));
+          }
         }
 
         const buffer = new Uint8Array(loaded);
