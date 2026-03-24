@@ -25,7 +25,7 @@ use systems::{
     update_drag_ghost, update_economy_ui, update_item_detail_bar, update_message_bar,
     update_order_icons, update_orders_ui,
 };
-use ui::{setup_initial_board, setup_ui};
+use ui::{preload_images, setup_initial_board, setup_ui};
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
 
@@ -288,6 +288,14 @@ pub(crate) struct AttractSymbol {
     pub(crate) dir_y: f32,
 }
 
+/// Holds [`Handle<Image>`] values for every item icon loaded at startup.
+///
+/// Keeping these handles alive ensures Bevy never unloads the textures, so all
+/// icon images are ready in the GPU texture cache the first time any cell or
+/// order card tries to display them.
+#[derive(Resource, Default)]
+pub(crate) struct PreloadedImages(pub(crate) Vec<Handle<Image>>);
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 fn main() {
@@ -318,6 +326,8 @@ fn main() {
     .insert_resource(DragState::default())
     .insert_resource(IdleTimer::default())
     .insert_resource(AttractAnimState::default())
+    .init_resource::<PreloadedImages>()
+    .add_systems(Startup, preload_images)
     .add_systems(Startup, setup_initial_board)
     .add_systems(Startup, setup_ui.after(setup_initial_board))
     .add_systems(Startup, setup_bgm);
