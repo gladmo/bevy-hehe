@@ -139,6 +139,13 @@ fn detach_all_anim(commands: &mut Commands, cell_image_query: &Query<(Entity, &C
     }
 }
 
+/// Compute the display duration for a given pair index using a deterministic
+/// Halton-like scatter so consecutive pairs have varied but reproducible durations.
+fn pair_duration_for(pair_index: usize) -> f32 {
+    let frac = ((pair_index * 137 + 53) % 100) as f32 / 100.0;
+    ATTRACT_MIN_DURATION + frac * (ATTRACT_MAX_DURATION - ATTRACT_MIN_DURATION)
+}
+
 /// Manage the idle attract animation: find all mergeable pairs, cycle through
 /// them, and animate their cell icons (scale + translate toward each other).
 ///
@@ -231,12 +238,10 @@ pub(crate) fn tick_attract_animation(
         if anim.pause_elapsed >= ATTRACT_PAUSE_SECS {
             anim.pausing = false;
             anim.pause_elapsed = 0.0;
+            // `pairs` is guaranteed non-empty by the guard on line 224 above.
             anim.current_pair = (anim.current_pair + 1) % anim.pairs.len();
             anim.pair_elapsed = 0.0;
-            // Recompute duration for the new pair.
-            let frac = ((anim.current_pair * 137 + 53) % 100) as f32 / 100.0;
-            anim.pair_duration =
-                ATTRACT_MIN_DURATION + frac * (ATTRACT_MAX_DURATION - ATTRACT_MIN_DURATION);
+            anim.pair_duration = pair_duration_for(anim.current_pair);
             detach_all_anim(&mut commands, &cell_image_query);
             attach_pair_anim(&mut commands, &cell_image_query, &anim);
         }
@@ -250,12 +255,13 @@ pub(crate) fn tick_attract_animation(
     if anim.pair_elapsed >= anim.pair_duration {
         anim.pair_elapsed = 0.0;
         if anim.pairs.len() > 1 {
-            // Start the inter-pair pause (icons return to normal while waiting).
+            // Multiple pairs: enter a 2-second pause before showing the next pair.
             anim.pausing = true;
             anim.pause_elapsed = 0.0;
             detach_all_anim(&mut commands, &cell_image_query);
         }
-        // If there is only one pair keep showing it indefinitely (no pause).
+        // Single pair: reset elapsed so the sine-wave animation loops from the
+        // start again, and keep AttractIconAnim attached for uninterrupted pulsing.
     }
 }
 

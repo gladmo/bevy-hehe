@@ -283,7 +283,7 @@ impl Default for AttractAnimState {
 /// Component added to [`CellImage`] nodes while they are part of the active
 /// attract-animation pair.  Stores the direction toward the other cell so the
 /// visual system can animate the icon's scale and translation correctly.
-#[derive(Component, PartialEq)]
+#[derive(Component, Clone, Debug, PartialEq)]
 pub(crate) struct AttractIconAnim {
     /// Signed direction toward the other cell along the column axis
     /// (+1 = right, −1 = left, 0 = same column).
