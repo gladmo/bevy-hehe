@@ -10,7 +10,20 @@ use crate::items::ItemDatabase;
 use crate::orders::{OrderSubmitButton, Orders};
 
 pub(crate) fn tick_economy(time: Res<Time>, mut economy: ResMut<Economy>) {
-    economy.tick(time.delta_secs());
+    // Update the internal stamina timer without triggering Bevy's change
+    // detection on every frame.  Change detection is only activated when
+    // `stamina` actually increments (once every ~2 minutes), preventing
+    // `update_economy_ui` from running its string-format comparisons 60×/second
+    // on frames where no observable value has changed.
+    let changed = {
+        let inner = economy.bypass_change_detection();
+        let old_stamina = inner.stamina;
+        inner.tick(time.delta_secs());
+        inner.stamina != old_stamina
+    };
+    if changed {
+        economy.set_changed();
+    }
 }
 
 pub(crate) fn tick_orders(
