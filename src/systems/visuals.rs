@@ -162,9 +162,14 @@ pub(crate) fn update_economy_ui(
         ),
     >,
 ) {
-    // Economy ticks every frame (stamina timer), so is_changed() is always true.
-    // Use value comparison to avoid marking Text as changed when the displayed
-    // value hasn't actually changed (stamina only changes every 2 minutes, etc.).
+    // Economy is only marked changed when stamina/coins/gems/level actually
+    // change — `tick_economy` uses `bypass_change_detection` for the timer
+    // accumulation and only calls `set_changed()` when `stamina` increments.
+    // This guard lets the system return immediately on idle frames, eliminating
+    // 4 string-format allocations and comparisons per frame.
+    if !economy.is_changed() {
+        return;
+    }
     if let Ok(mut t) = stamina_q.single_mut() {
         let new_val = format!("{}/{}", economy.stamina, economy.max_stamina);
         if **t != new_val {
@@ -246,8 +251,13 @@ pub(crate) fn update_message_bar(
 ) {
     if message.timer > 0.0 {
         message.timer -= time.delta_secs();
+        // Only write to Text when the displayed string hasn't changed — avoids
+        // marking the Text component as changed (and triggering a re-render)
+        // on every frame during the countdown.
         if let Ok(mut t) = label_q.single_mut() {
-            **t = message.text.clone();
+            if **t != message.text {
+                **t = message.text.clone();
+            }
         }
     } else if !message.text.is_empty() {
         message.text.clear();
@@ -308,10 +318,14 @@ pub(crate) fn update_item_detail_bar(
                     };
                 }
                 if let Ok(mut img) = icon_q.single_mut() {
-                    if let Some(path) = def.icon_path {
-                        img.image = asset_server.load(path);
+                    let new_handle = if let Some(path) = def.icon_path {
+                        asset_server.load(path)
                     } else {
-                        img.image = Handle::default();
+                        Handle::default()
+                    };
+                    // Only update (and mark ImageNode changed) when the handle differs.
+                    if img.image != new_handle {
+                        img.image = new_handle;
                     }
                 }
                 return;
@@ -321,13 +335,21 @@ pub(crate) fn update_item_detail_bar(
 
     // Nothing selected — show default hint
     if let Ok(mut t) = name_q.single_mut() {
-        **t = "点击棋子查看详情".to_string();
+        let default_name = "点击棋子查看详情";
+        if **t != default_name {
+            **t = default_name.to_string();
+        }
     }
     if let Ok(mut t) = hint_q.single_mut() {
-        **t = "拖拽同类同级棋子可合成".to_string();
+        let default_hint = "拖拽同类同级棋子可合成";
+        if **t != default_hint {
+            **t = default_hint.to_string();
+        }
     }
     if let Ok(mut img) = icon_q.single_mut() {
-        img.image = Handle::default();
+        if img.image != Handle::default() {
+            img.image = Handle::default();
+        }
     }
 }
 
