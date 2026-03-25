@@ -19,7 +19,7 @@ use economy::Economy;
 use items::ItemDatabase;
 use orders::Orders;
 use systems::{
-    animate_attract_cells, animate_attract_symbols, animate_rising_stars, handle_cell_interaction,
+    animate_attract_icons, animate_rising_stars, handle_cell_interaction,
     handle_drag_input, handle_order_submit, tick_attract_animation, tick_auto_generators,
     tick_economy, tick_idle_timer, tick_orders, tick_star_spawners, update_cell_visuals,
     update_drag_ghost, update_economy_ui, update_item_detail_bar, update_message_bar,
@@ -221,8 +221,12 @@ pub(crate) const ATTRACT_IDLE_SECS: f32 = 5.0;
 pub(crate) const ATTRACT_MIN_DURATION: f32 = 1.5;
 /// Maximum seconds each pair is highlighted.
 pub(crate) const ATTRACT_MAX_DURATION: f32 = 2.0;
-/// Seconds between consecutive sparkle-wave spawns on a highlighted pair.
-pub(crate) const ATTRACT_SPARKLE_INTERVAL: f32 = 0.5;
+/// Seconds to pause between pair switches when multiple pairs exist.
+pub(crate) const ATTRACT_PAUSE_SECS: f32 = 2.0;
+/// Maximum horizontal pixel offset applied to icons during the attract animation.
+pub(crate) const ATTRACT_ICON_MAX_MOVE_X: f32 = 16.0;
+/// Maximum vertical pixel offset applied to icons during the attract animation.
+pub(crate) const ATTRACT_ICON_MAX_MOVE_Y: f32 = 8.0;
 
 /// Tag for the 仓库 (warehouse) button in the bottom bar.
 #[derive(Component)]
@@ -254,8 +258,10 @@ pub(crate) struct AttractAnimState {
     pub(crate) pair_elapsed: f32,
     /// Duration (secs) to display the current pair before advancing.
     pub(crate) pair_duration: f32,
-    /// Accumulated time towards the next sparkle-wave spawn.
-    pub(crate) sparkle_timer: f32,
+    /// Whether the animation is currently in the inter-pair pause.
+    pub(crate) pausing: bool,
+    /// Elapsed seconds of the current inter-pair pause.
+    pub(crate) pause_elapsed: f32,
     /// Whether the attract animation is currently running.
     pub(crate) active: bool,
 }
@@ -267,24 +273,23 @@ impl Default for AttractAnimState {
             current_pair: 0,
             pair_elapsed: 0.0,
             pair_duration: ATTRACT_MIN_DURATION,
-            // Start timer past the threshold so the first sparkle spawns immediately.
-            sparkle_timer: ATTRACT_SPARKLE_INTERVAL,
+            pausing: false,
+            pause_elapsed: 0.0,
             active: false,
         }
     }
 }
 
-/// Component for the small golden "✦" sparkle children spawned on attracted cells.
-///
-/// Each sparkle moves from the cell centre toward the direction of the other
-/// cell in the pair, then fades out and despawns.
-#[derive(Component)]
-pub(crate) struct AttractSymbol {
-    pub(crate) elapsed: f32,
-    pub(crate) lifetime: f32,
-    /// Signed direction along the column axis (+1 = right, −1 = left, 0 = none).
+/// Component added to [`CellImage`] nodes while they are part of the active
+/// attract-animation pair.  Stores the direction toward the other cell so the
+/// visual system can animate the icon's scale and translation correctly.
+#[derive(Component, PartialEq)]
+pub(crate) struct AttractIconAnim {
+    /// Signed direction toward the other cell along the column axis
+    /// (+1 = right, −1 = left, 0 = same column).
     pub(crate) dir_x: f32,
-    /// Signed direction along the row axis (+1 = down, −1 = up, 0 = none).
+    /// Signed direction toward the other cell along the row axis
+    /// (+1 = down, −1 = up, 0 = same row).
     pub(crate) dir_y: f32,
 }
 
@@ -365,8 +370,7 @@ fn main() {
                 update_item_detail_bar,
                 update_message_bar,
                 animate_rising_stars,
-                animate_attract_symbols,
-                animate_attract_cells.after(update_cell_visuals),
+                animate_attract_icons.after(update_cell_visuals),
             )
                 .in_set(GameSet::Visuals),
         )
