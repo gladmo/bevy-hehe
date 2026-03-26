@@ -173,7 +173,7 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
     .with_children(|bar| {
         // Left: Game title
         bar.spawn((
-            Text::new("🏮 合合游戏"),
+            Text::new("二合"),
             TextFont {
                 font: font.clone(),
                 font_size: 24.0,
@@ -194,7 +194,7 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
             spawn_stat_card(stats, "⚡体力", StaminaLabel, "100/100", ACCENT_GREEN, font);
             spawn_stat_card(
                 stats,
-                "💰铜板",
+                "铜板",
                 CoinsLabel,
                 "0",
                 Color::srgb(0.95, 0.80, 0.25),
@@ -202,7 +202,7 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
             );
             spawn_stat_card(
                 stats,
-                "💎宝石",
+                "宝石",
                 GemsLabel,
                 "0",
                 Color::srgb(0.55, 0.75, 0.95),
@@ -410,7 +410,7 @@ fn spawn_bottom_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
     ))
     .with_children(|bar| {
         // Left: 仓库 button
-        spawn_bottom_action_btn(bar, "🏪 仓库", font, true);
+        spawn_bottom_action_btn(bar, "仓库", font, true);
 
         // Center: item detail (icon + name/hint text)
         bar.spawn(Node {
@@ -480,7 +480,7 @@ fn spawn_bottom_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
         });
 
         // Right: 活动 button
-        spawn_bottom_action_btn(bar, "🎉 活动", font, false);
+        spawn_bottom_action_btn(bar, "活动", font, false);
     });
 }
 
