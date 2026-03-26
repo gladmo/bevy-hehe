@@ -27,11 +27,64 @@ static CRAFTBOX_GEN: &[GenerationOption] = &[
     GenerationOption::new("lantern_2", 0, 2),
 ];
 
-/// 妆奁 gen: 金戒指 (main) + 雕花耳坠 (level-scaled) + 平安扣 (rare, scales with level)
-static DRESSER_GEN: &[GenerationOption] = &[
-    GenerationOption::new("ring_1", 85, 0),
-    GenerationOption::new("ring_2", 0, 2),
-    GenerationOption::new("peaceLock_1", 5, 1),
+/// 妆奁 Lv5 gen: 95% 蓝宝石 + 5% 金戒指
+static DRESSER_GEN_5: &[GenerationOption] = &[
+    GenerationOption::new("ring_1", 95, 0),
+    GenerationOption::new("ring_2",  5, 0),
+];
+
+/// 妆奁 Lv6 gen: 90% 蓝宝石 + 8% 金戒指 + 2% 宝石戒指
+static DRESSER_GEN_6: &[GenerationOption] = &[
+    GenerationOption::new("ring_1", 90, 0),
+    GenerationOption::new("ring_2",  8, 0),
+    GenerationOption::new("ring_3",  2, 0),
+];
+
+/// 妆奁 Lv7 gen: 80% ring_1 + 12% ring_2 + 6% ring_3 + 2% ring_4
+static DRESSER_GEN_7: &[GenerationOption] = &[
+    GenerationOption::new("ring_1", 80, 0),
+    GenerationOption::new("ring_2", 12, 0),
+    GenerationOption::new("ring_3",  6, 0),
+    GenerationOption::new("ring_4",  2, 0),
+];
+
+/// 妆奁 Lv8 gen: 70% ring_1 + 15% ring_2 + 10% ring_3 + 3% ring_4 + 2% ring_5
+static DRESSER_GEN_8: &[GenerationOption] = &[
+    GenerationOption::new("ring_1", 70, 0),
+    GenerationOption::new("ring_2", 15, 0),
+    GenerationOption::new("ring_3", 10, 0),
+    GenerationOption::new("ring_4",  3, 0),
+    GenerationOption::new("ring_5",  2, 0),
+];
+
+/// 妆奁 Lv9 gen: 60% ring_1 + 18% ring_2 + 12% ring_3 + 6% ring_4 + 2% ring_5 + 2% 平安扣
+static DRESSER_GEN_9: &[GenerationOption] = &[
+    GenerationOption::new("ring_1",      60, 0),
+    GenerationOption::new("ring_2",      18, 0),
+    GenerationOption::new("ring_3",      12, 0),
+    GenerationOption::new("ring_4",       6, 0),
+    GenerationOption::new("ring_5",       2, 0),
+    GenerationOption::new("peaceLock_1",  2, 0),
+];
+
+/// 妆奁 Lv10 gen: 50% ring_1 + 20% ring_2 + 15% ring_3 + 8% ring_4 + 4% ring_5 + 3% 平安扣
+static DRESSER_GEN_10: &[GenerationOption] = &[
+    GenerationOption::new("ring_1",      50, 0),
+    GenerationOption::new("ring_2",      20, 0),
+    GenerationOption::new("ring_3",      15, 0),
+    GenerationOption::new("ring_4",       8, 0),
+    GenerationOption::new("ring_5",       4, 0),
+    GenerationOption::new("peaceLock_1",  3, 0),
+];
+
+/// 妆奁 Lv11 gen: 40% ring_1 + 20% ring_2 + 18% ring_3 + 12% ring_4 + 6% ring_5 + 4% 平安扣
+static DRESSER_GEN_11: &[GenerationOption] = &[
+    GenerationOption::new("ring_1",      40, 0),
+    GenerationOption::new("ring_2",      20, 0),
+    GenerationOption::new("ring_3",      18, 0),
+    GenerationOption::new("ring_4",      12, 0),
+    GenerationOption::new("ring_5",       6, 0),
+    GenerationOption::new("peaceLock_1",  4, 0),
 ];
 
 /// 织布机 gen: 白色布匹 (main) + 彩色布匹 (level-scaled)
@@ -223,13 +276,13 @@ pub fn all_items() -> Vec<ItemDef> {
     items.push(ItemDef::child("dresser_2", ChainType::Dresser, 2, "盖盒", "💄", Some("dresser_3"), drc, Some("images/items/item_icon_10402.png")));
     items.push(ItemDef::child("dresser_3", ChainType::Dresser, 3, "木盒", "💄", Some("dresser_4"), drc, Some("images/items/item_icon_10403.png")));
     items.push(ItemDef::child("dresser_4", ChainType::Dresser, 4, "妆奁", "💄", Some("dresser_5"), drc, Some("images/items/item_icon_10404.png")));
-    items.push(ItemDef::generator("dresser_5",  ChainType::Dresser, 5,  "黑漆妆奁", "💄", DRESSER_GEN, "ring_1", Some("dresser_6"),  drc, Some("images/items/item_icon_10405.png")));
-    items.push(ItemDef::generator("dresser_6",  ChainType::Dresser, 6,  "描金妆奁", "💄", DRESSER_GEN, "ring_1", Some("dresser_7"),  drc, Some("images/items/item_icon_10406.png")));
-    items.push(ItemDef::generator("dresser_7",  ChainType::Dresser, 7,  "雕花妆奁", "💄", DRESSER_GEN, "ring_1", Some("dresser_8"),  drc, Some("images/items/item_icon_10407.png")));
-    items.push(ItemDef::generator("dresser_8",  ChainType::Dresser, 8,  "藏香妆奁", "💄", DRESSER_GEN, "ring_1", Some("dresser_9"),  drc, Some("images/items/item_icon_10408.png")));
-    items.push(ItemDef::generator("dresser_9",  ChainType::Dresser, 9,  "拈花妆奁", "💄", DRESSER_GEN, "ring_1", Some("dresser_10"), drc, Some("images/items/item_icon_10409.png")));
-    items.push(ItemDef::generator("dresser_10", ChainType::Dresser, 10, "叠绛妆奁", "💄", DRESSER_GEN, "ring_1", Some("dresser_11"), drc, Some("images/items/item_icon_10410.png")));
-    items.push(ItemDef::generator("dresser_11", ChainType::Dresser, 11, "浮麝妆奁", "💄", DRESSER_GEN, "ring_1", None,              drc, Some("images/items/item_icon_10411.png")));
+    items.push(ItemDef::generator("dresser_5",  ChainType::Dresser, 5,  "黑漆妆奁", "💄", DRESSER_GEN_5,  "ring_1", Some("dresser_6"),  drc, Some("images/items/item_icon_10405.png")));
+    items.push(ItemDef::generator("dresser_6",  ChainType::Dresser, 6,  "描金妆奁", "💄", DRESSER_GEN_6,  "ring_1", Some("dresser_7"),  drc, Some("images/items/item_icon_10406.png")));
+    items.push(ItemDef::generator("dresser_7",  ChainType::Dresser, 7,  "雕花妆奁", "💄", DRESSER_GEN_7,  "ring_1", Some("dresser_8"),  drc, Some("images/items/item_icon_10407.png")));
+    items.push(ItemDef::generator("dresser_8",  ChainType::Dresser, 8,  "藏香妆奁", "💄", DRESSER_GEN_8,  "ring_1", Some("dresser_9"),  drc, Some("images/items/item_icon_10408.png")));
+    items.push(ItemDef::generator("dresser_9",  ChainType::Dresser, 9,  "拈花妆奁", "💄", DRESSER_GEN_9,  "ring_1", Some("dresser_10"), drc, Some("images/items/item_icon_10409.png")));
+    items.push(ItemDef::generator("dresser_10", ChainType::Dresser, 10, "叠绛妆奁", "💄", DRESSER_GEN_10, "ring_1", Some("dresser_11"), drc, Some("images/items/item_icon_10410.png")));
+    items.push(ItemDef::generator("dresser_11", ChainType::Dresser, 11, "浮麝妆奁", "💄", DRESSER_GEN_11, "ring_1", None,              drc, Some("images/items/item_icon_10411.png")));
 
     // ── 戒指 (Ring/Jewelry) child chain (11 levels) ───────────────────────────
     let rc = (0.85, 0.75, 0.25); // gold
