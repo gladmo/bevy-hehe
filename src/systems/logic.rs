@@ -151,28 +151,55 @@ pub(crate) fn handle_cell_interaction(
                             }
                         }
                     } else if item.is_generator {
-                        let mut rng = rand::thread_rng();
-                        if let Some(gen_id) = item.pick_generated_item(&mut rng) {
-                            if economy.spend_stamina(1) {
-                                if board.place_near(idx, gen_id) {
-                                    if let Some(gen_item) = db.get(gen_id) {
-                                        message.set(format!(
-                                            "生成了 {} {}！剩余体力 {}",
-                                            gen_item.emoji, gen_item.name, economy.stamina,
-                                        ));
+                        let count = item.generates_count.max(1);
+                        let consumes = item.consumes_on_generate;
+                        if economy.spend_stamina(1) {
+                            let mut rng = rand::thread_rng();
+                            let mut placed = 0u32;
+                            let mut last_gen_id: Option<&'static str> = None;
+                            for _ in 0..count {
+                                if let Some(gen_id) = item.pick_generated_item(&mut rng) {
+                                    if board.place_near(idx, gen_id) {
+                                        placed += 1;
+                                        last_gen_id = Some(gen_id);
+                                    } else {
+                                        // Board full — stop early
+                                        break;
                                     }
-                                } else {
-                                    // Board full — refund stamina
-                                    economy.stamina =
-                                        (economy.stamina + 1).min(economy.max_stamina);
-                                    message.set("棋盘已满，无法生成！");
                                 }
-                            } else {
-                                message.set(format!(
-                                    "体力不足（{}），等待恢复（2分钟+1）",
-                                    economy.stamina
-                                ));
                             }
+                            if placed == 0 {
+                                // Nothing placed — refund stamina
+                                economy.stamina =
+                                    (economy.stamina + 1).min(economy.max_stamina);
+                                message.set("棋盘已满，无法生成！");
+                            } else {
+                                if consumes {
+                                    board.cells[idx].item_id = None;
+                                    board.dirty = true;
+                                }
+                                if placed > 1 {
+                                    message.set(format!(
+                                        "生成了 {} 个棋子！剩余体力 {}",
+                                        placed, economy.stamina,
+                                    ));
+                                } else if let Some(gen_item) = last_gen_id.and_then(|id| db.get(id)) {
+                                    message.set(format!(
+                                        "生成了 {} {}！剩余体力 {}",
+                                        gen_item.emoji, gen_item.name, economy.stamina,
+                                    ));
+                                } else {
+                                    message.set(format!(
+                                        "生成了 {} 个棋子！剩余体力 {}",
+                                        placed, economy.stamina,
+                                    ));
+                                }
+                            }
+                        } else {
+                            message.set(format!(
+                                "体力不足（{}），等待恢复（2分钟+1）",
+                                economy.stamina
+                            ));
                         }
                     }
                 }
@@ -188,8 +215,13 @@ pub(crate) fn handle_cell_interaction(
                                 pending
                             )
                         } else if item.is_generator {
+                            let count = item.generates_count.max(1);
                             if economy.stamina >= 1 {
-                                format!("— 再次点击生成（耗1体力，剩余体力：{}）", economy.stamina)
+                                if count > 1 {
+                                    format!("— 再次点击生成最多 {} 个棋子（耗1体力，剩余体力：{}）", count, economy.stamina)
+                                } else {
+                                    format!("— 再次点击生成（耗1体力，剩余体力：{}）", economy.stamina)
+                                }
                             } else {
                                 "— 体力不足，无法生成子棋".to_string()
                             }
