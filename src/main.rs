@@ -20,10 +20,10 @@ use items::ItemDatabase;
 use orders::Orders;
 use systems::{
     animate_attract_icons, animate_rising_stars, handle_cell_interaction,
-    handle_drag_input, handle_order_submit, tick_attract_animation, tick_auto_generators,
-    tick_economy, tick_idle_timer, tick_orders, tick_star_spawners, update_cell_visuals,
-    update_drag_ghost, update_economy_ui, update_item_detail_bar, update_message_bar,
-    update_order_icons, update_orders_ui,
+    handle_double_stamina_toggle, handle_drag_input, handle_order_submit, tick_attract_animation,
+    tick_auto_generators, tick_economy, tick_idle_timer, tick_orders, tick_star_spawners,
+    update_cell_visuals, update_double_stamina_button, update_drag_ghost, update_economy_ui,
+    update_item_detail_bar, update_message_bar, update_order_icons, update_orders_ui,
 };
 use ui::{preload_images, setup_initial_board, setup_ui};
 
@@ -236,6 +236,23 @@ pub(crate) struct WarehouseButton;
 #[derive(Component)]
 pub(crate) struct ActivityButton;
 
+/// Resource that tracks whether double-stamina mode is active.
+///
+/// When active, non-auto-generator pieces consume 2 stamina per activation
+/// instead of 1, but the generated child piece is 1 level higher than usual.
+#[derive(Resource, Default)]
+pub(crate) struct DoubleStaminaMode {
+    pub(crate) active: bool,
+}
+
+/// Tag for the double-stamina toggle button in the top-right corner of the top bar.
+#[derive(Component)]
+pub(crate) struct DoubleStaminaButton;
+
+/// Tag for the text label inside the double-stamina toggle button.
+#[derive(Component)]
+pub(crate) struct DoubleStaminaLabel;
+
 // ── Idle / Attract-animation resources ───────────────────────────────────────
 
 /// Tracks elapsed time since the last user input (mouse/touch/key).
@@ -331,6 +348,7 @@ fn main() {
     .insert_resource(DragState::default())
     .insert_resource(IdleTimer::default())
     .insert_resource(AttractAnimState::default())
+    .insert_resource(DoubleStaminaMode::default())
     .init_resource::<PreloadedImages>()
     .add_systems(Startup, preload_images)
     .add_systems(Startup, setup_initial_board)
@@ -356,6 +374,7 @@ fn main() {
                 handle_drag_input,
                 handle_cell_interaction,
                 handle_order_submit,
+                handle_double_stamina_toggle,
             )
                 .in_set(GameSet::Logic),
         )
@@ -369,6 +388,7 @@ fn main() {
                 update_order_icons,
                 update_item_detail_bar,
                 update_message_bar,
+                update_double_stamina_button,
                 animate_rising_stars,
                 animate_attract_icons.after(update_cell_visuals),
             )
