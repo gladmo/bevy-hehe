@@ -2,11 +2,12 @@
 use bevy::prelude::*;
 
 use crate::{
-    AttractAnimState, AttractSymbol, IdleTimer, RisingStar, StarSpawnTimer,
-    ATTRACT_IDLE_SECS, ATTRACT_MAX_DURATION, ATTRACT_MIN_DURATION, ATTRACT_SPARKLE_INTERVAL,
+    AttractAnimState, AttractIconAnim, IdleTimer, RisingStar, StarSpawnTimer,
+    ATTRACT_IDLE_SECS, ATTRACT_ICON_MAX_MOVE_X, ATTRACT_ICON_MAX_MOVE_Y,
+    ATTRACT_MAX_DURATION, ATTRACT_MIN_DURATION, ATTRACT_PAUSE_SECS,
     STAR_SPAWN_INTERVAL,
 };
-use crate::board::{Board, BoardCell};
+use crate::board::{Board, BoardCell, CellImage};
 use crate::items::ItemDatabase;
 
 /// Spawn rising white star "✦" animations on auto-generator cells every STAR_SPAWN_INTERVAL.
@@ -106,12 +107,52 @@ pub(crate) fn tick_idle_timer(
     }
 }
 
+/// Add `AttractIconAnim` to the two `CellImage` entities in the active pair.
+fn attach_pair_anim(
+    commands: &mut Commands,
+    cell_image_query: &Query<(Entity, &CellImage)>,
+    anim: &AttractAnimState,
+) {
+    let (idx_a, idx_b) = anim.pairs[anim.current_pair];
+    let (col_a, row_a) = Board::pos(idx_a);
+    let (col_b, row_b) = Board::pos(idx_b);
+    let dir_x = (col_b as f32 - col_a as f32).signum();
+    let dir_y = (row_b as f32 - row_a as f32).signum();
+
+    for (entity, ci) in cell_image_query {
+        if ci.index == idx_a {
+            commands
+                .entity(entity)
+                .insert(AttractIconAnim { dir_x, dir_y });
+        } else if ci.index == idx_b {
+            commands
+                .entity(entity)
+                .insert(AttractIconAnim { dir_x: -dir_x, dir_y: -dir_y });
+        }
+    }
+}
+
+/// Remove `AttractIconAnim` from every `CellImage` entity.
+fn detach_all_anim(commands: &mut Commands, cell_image_query: &Query<(Entity, &CellImage)>) {
+    for (entity, _) in cell_image_query {
+        commands.entity(entity).remove::<AttractIconAnim>();
+    }
+}
+
+/// Compute the display duration for a given pair index using a deterministic
+/// Halton-like scatter so consecutive pairs have varied but reproducible durations.
+fn pair_duration_for(pair_index: usize) -> f32 {
+    let frac = ((pair_index * 137 + 53) % 100) as f32 / 100.0;
+    ATTRACT_MIN_DURATION + frac * (ATTRACT_MAX_DURATION - ATTRACT_MIN_DURATION)
+}
+
 /// Manage the idle attract animation: find all mergeable pairs, cycle through
-/// them, and spawn golden "✦" sparkle children on each pair's cells.
+/// them, and animate their cell icons (scale + translate toward each other).
 ///
 /// The animation starts after [`ATTRACT_IDLE_SECS`] seconds of inactivity and
 /// stops immediately when the player interacts again.  Each pair is shown for a
-/// duration in the range [`ATTRACT_MIN_DURATION`]..=[`ATTRACT_MAX_DURATION`].
+/// duration in the range [`ATTRACT_MIN_DURATION`]..=[`ATTRACT_MAX_DURATION`],
+/// followed by a [`ATTRACT_PAUSE_SECS`] pause before the next pair is shown.
 pub(crate) fn tick_attract_animation(
     time: Res<Time>,
     idle: Res<IdleTimer>,
@@ -119,25 +160,18 @@ pub(crate) fn tick_attract_animation(
     db: Res<ItemDatabase>,
     mut anim: ResMut<AttractAnimState>,
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    cell_query: Query<(Entity, &BoardCell)>,
-    symbol_query: Query<Entity, With<AttractSymbol>>,
+    cell_image_query: Query<(Entity, &CellImage)>,
 ) {
     let delta = time.delta_secs();
-
-    // ── Helper: despawn all existing sparkle symbols ──────────────────────────
-    let despawn_symbols = |cmds: &mut Commands, q: &Query<Entity, With<AttractSymbol>>| {
-        for entity in q {
-            cmds.entity(entity).despawn();
-        }
-    };
 
     // ── Deactivate while the player is active ─────────────────────────────────
     if idle.elapsed < ATTRACT_IDLE_SECS {
         if anim.active {
             anim.active = false;
+            anim.pausing = false;
+            anim.pause_elapsed = 0.0;
             anim.pairs.clear();
-            despawn_symbols(&mut commands, &symbol_query);
+            detach_all_anim(&mut commands, &cell_image_query);
         }
         return;
     }
@@ -169,7 +203,8 @@ pub(crate) fn tick_attract_animation(
             // No mergeable pairs: stop the animation.
             if anim.active {
                 anim.active = false;
-                despawn_symbols(&mut commands, &symbol_query);
+                anim.pausing = false;
+                detach_all_anim(&mut commands, &cell_image_query);
             }
             anim.pairs.clear();
             return;
@@ -177,146 +212,90 @@ pub(crate) fn tick_attract_animation(
 
         let pairs_differ = new_pairs != anim.pairs;
         anim.pairs = new_pairs;
-        anim.active = true;
 
-        if pairs_differ || anim.current_pair >= anim.pairs.len() {
+        if pairs_differ || !anim.active || anim.current_pair >= anim.pairs.len() {
             // Pairs changed or current index is out of range: restart from pair 0.
             anim.current_pair = 0;
             anim.pair_elapsed = 0.0;
-            anim.sparkle_timer = ATTRACT_SPARKLE_INTERVAL; // spawn immediately
-            despawn_symbols(&mut commands, &symbol_query);
+            anim.pausing = false;
+            anim.pause_elapsed = 0.0;
+            anim.active = true;
+            detach_all_anim(&mut commands, &cell_image_query);
+            attach_pair_anim(&mut commands, &cell_image_query, &anim);
+        } else {
+            anim.active = true;
         }
+        return;
     }
 
     if !anim.active || anim.pairs.is_empty() {
         return;
     }
 
-    // ── Advance timers ────────────────────────────────────────────────────────
-    anim.pair_elapsed += delta;
-    anim.sparkle_timer += delta;
-
-    // ── Spawn a sparkle wave when the interval elapses ────────────────────────
-    if anim.sparkle_timer >= ATTRACT_SPARKLE_INTERVAL {
-        anim.sparkle_timer -= ATTRACT_SPARKLE_INTERVAL;
-
-        let (idx_a, idx_b) = anim.pairs[anim.current_pair];
-        let (col_a, row_a) = Board::pos(idx_a);
-        let (col_b, row_b) = Board::pos(idx_b);
-        let dir_x = (col_b as f32 - col_a as f32).signum();
-        let dir_y = (row_b as f32 - row_a as f32).signum();
-
-        let font: Handle<Font> = asset_server.load("fonts/SourceHanSansSC-Medium.otf");
-
-        // Helper: spawn a sparkle as a child of the given cell entity.
-        let spawn_sparkle =
-            |parent: &mut ChildSpawnerCommands, sx: f32, sy: f32, f: Handle<Font>| {
-                parent.spawn((
-                    Text::new("✦"),
-                    TextFont {
-                        font: f,
-                        font_size: 10.0,
-                        ..default()
-                    },
-                    TextColor(Color::srgba(1.0, 0.88, 0.30, 0.0)),
-                    Node {
-                        position_type: PositionType::Absolute,
-                        top: Val::Px(10.0),
-                        left: Val::Px(18.0),
-                        ..default()
-                    },
-                    AttractSymbol {
-                        elapsed: 0.0,
-                        lifetime: 0.75,
-                        dir_x: sx,
-                        dir_y: sy,
-                    },
-                    Pickable::IGNORE,
-                    ZIndex(100),
-                ));
-            };
-
-        // Sparkle on cell A moves toward cell B.
-        if let Some((entity_a, _)) = cell_query.iter().find(|(_, c)| c.index == idx_a) {
-            let f = font.clone();
-            commands
-                .entity(entity_a)
-                .with_children(|p| spawn_sparkle(p, dir_x, dir_y, f));
+    // ── Handle inter-pair pause ────────────────────────────────────────────────
+    if anim.pausing {
+        anim.pause_elapsed += delta;
+        if anim.pause_elapsed >= ATTRACT_PAUSE_SECS {
+            anim.pausing = false;
+            anim.pause_elapsed = 0.0;
+            // `pairs` is guaranteed non-empty by the guard on line 224 above.
+            anim.current_pair = (anim.current_pair + 1) % anim.pairs.len();
+            anim.pair_elapsed = 0.0;
+            anim.pair_duration = pair_duration_for(anim.current_pair);
+            detach_all_anim(&mut commands, &cell_image_query);
+            attach_pair_anim(&mut commands, &cell_image_query, &anim);
         }
-        // Sparkle on cell B moves toward cell A.
-        if let Some((entity_b, _)) = cell_query.iter().find(|(_, c)| c.index == idx_b) {
-            commands
-                .entity(entity_b)
-                .with_children(|p| spawn_sparkle(p, -dir_x, -dir_y, font));
-        }
+        return;
     }
+
+    // ── Advance pair timer ────────────────────────────────────────────────────
+    anim.pair_elapsed += delta;
 
     // ── Advance to the next pair when the current one has played long enough ──
     if anim.pair_elapsed >= anim.pair_duration {
-        anim.pair_elapsed -= anim.pair_duration;
-        anim.current_pair = (anim.current_pair + 1) % anim.pairs.len();
-
-        // Vary the duration using a deterministic but irregular sequence.
-        // 137 is a prime-step Halton-like scatter; 53 offsets from zero; 100 is
-        // the integer range that maps to the [0, 1) fraction.
-        let frac = ((anim.current_pair * 137 + 53) % 100) as f32 / 100.0;
-        anim.pair_duration =
-            ATTRACT_MIN_DURATION + frac * (ATTRACT_MAX_DURATION - ATTRACT_MIN_DURATION);
-
-        // Despawn sparkles from the old pair.
-        despawn_symbols(&mut commands, &symbol_query);
-        // Trigger immediate sparkle spawn for the new pair.
-        anim.sparkle_timer = ATTRACT_SPARKLE_INTERVAL;
+        anim.pair_elapsed = 0.0;
+        if anim.pairs.len() > 1 {
+            // Multiple pairs: enter a 2-second pause before showing the next pair.
+            anim.pausing = true;
+            anim.pause_elapsed = 0.0;
+            detach_all_anim(&mut commands, &cell_image_query);
+        }
+        // Single pair: reset elapsed so the sine-wave animation loops from the
+        // start again, and keep AttractIconAnim attached for uninterrupted pulsing.
     }
 }
 
-/// Animate the attract sparkle symbols: translate toward the other cell and fade.
+/// Animate the icons of the active attract pair: scale up to 1.5× and
+/// translate toward the other cell.  Icons without [`AttractIconAnim`] are
+/// reset to their identity transform.
 ///
-/// Runs in [`GameSet::Visuals`].
-pub(crate) fn animate_attract_symbols(
-    mut commands: Commands,
-    time: Res<Time>,
-    mut q: Query<(Entity, &mut AttractSymbol, &mut Node, &mut TextColor)>,
-) {
-    for (entity, mut sym, mut node, mut color) in &mut q {
-        sym.elapsed += time.delta_secs();
-        let t = (sym.elapsed / sym.lifetime).min(1.0);
-
-        // Translate up to 14 px vertically and 22 px horizontally toward the other cell.
-        node.top = Val::Px(10.0 + sym.dir_y * t * 14.0);
-        node.left = Val::Px(18.0 + sym.dir_x * t * 22.0);
-
-        // Fade in then out using a sine envelope.
-        let alpha = (t * std::f32::consts::PI).sin() * 0.9;
-        color.0 = Color::srgba(1.0, 0.88, 0.30, alpha);
-
-        if sym.elapsed >= sym.lifetime {
-            commands.entity(entity).despawn();
-        }
-    }
-}
-
-/// Apply a pulsing golden border to the two cells in the currently highlighted
-/// attract pair.  Runs in [`GameSet::Visuals`] *after* [`update_cell_visuals`]
-/// so the glow takes precedence over the normal border colour for those cells.
-pub(crate) fn animate_attract_cells(
+/// Runs in [`GameSet::Visuals`] after [`update_cell_visuals`].
+pub(crate) fn animate_attract_icons(
     anim: Res<AttractAnimState>,
-    mut cell_query: Query<(&BoardCell, &mut BorderColor)>,
+    mut cell_image_query: Query<(Option<&AttractIconAnim>, &mut Transform), With<CellImage>>,
 ) {
-    if !anim.active || anim.pairs.is_empty() {
-        return;
-    }
+    // Smooth sine-wave envelope: 0 → 1 → 0 over ~1 second, repeating.
+    // Using |sin(π · t)| gives a ping-pong that starts and ends at 0.
+    let anim_t = if anim.active && !anim.pausing {
+        (anim.pair_elapsed * std::f32::consts::PI).sin().abs()
+    } else {
+        0.0
+    };
 
-    let (idx_a, idx_b) = anim.pairs[anim.current_pair];
+    let scale = 1.0 + 0.5 * anim_t; // 1.0 at rest → 1.5 at peak
 
-    // Pulse at ~1.5 Hz: base alpha 0.40, sine amplitude 0.55 → range [−0.15, 0.95].
-    // Clamped to [0, 1] to avoid negative or over-saturated alpha values.
-    let alpha = 0.40 + 0.55 * (anim.pair_elapsed * std::f32::consts::TAU * 1.5).sin();
-    let alpha = alpha.clamp(0.0, 1.0);
-
-    for (cell, mut border) in &mut cell_query {
-        if cell.index == idx_a || cell.index == idx_b {
-            border.set_if_neq(BorderColor::all(Color::srgba(0.88, 0.72, 0.30, alpha)));
-        }
+    for (opt_icon_anim, mut transform) in &mut cell_image_query {
+        let new_transform = if let Some(icon_anim) = opt_icon_anim {
+            let tx = icon_anim.dir_x * ATTRACT_ICON_MAX_MOVE_X * anim_t;
+            let ty = -icon_anim.dir_y * ATTRACT_ICON_MAX_MOVE_Y * anim_t;
+            Transform {
+                scale: Vec3::new(scale, scale, 1.0),
+                translation: Vec3::new(tx, ty, 0.0),
+                ..default()
+            }
+        } else {
+            Transform::IDENTITY
+        };
+        transform.set_if_neq(new_transform);
     }
 }
