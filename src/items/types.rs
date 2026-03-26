@@ -94,6 +94,10 @@ pub struct ItemDef {
     pub merge_result_id: Option<&'static str>,
     /// Background color (r, g, b) for display
     pub bg_color: (f32, f32, f32),
+    /// Number of items to generate per activation (default 1).
+    pub generates_count: u32,
+    /// If true, the generator removes itself from the board after generating.
+    pub consumes_on_generate: bool,
 }
 
 impl ItemDef {
@@ -145,6 +149,8 @@ impl ItemDef {
             auto_gen_interval_secs: 0.0,
             merge_result_id,
             bg_color,
+            generates_count: 1,
+            consumes_on_generate: false,
         }
     }
 
@@ -174,6 +180,8 @@ impl ItemDef {
             auto_gen_interval_secs: 0.0,
             merge_result_id,
             bg_color,
+            generates_count: 1,
+            consumes_on_generate: false,
         }
     }
 
@@ -204,6 +212,8 @@ impl ItemDef {
             auto_gen_interval_secs: interval_secs,
             merge_result_id,
             bg_color,
+            generates_count: 1,
+            consumes_on_generate: false,
         }
     }
 }
