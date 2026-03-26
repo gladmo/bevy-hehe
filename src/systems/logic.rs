@@ -2,8 +2,8 @@
 use bevy::prelude::*;
 
 use crate::{
-    AutoGenTimers, DoubleStaminaButton, DoubleStaminaMode, EggStorage, MessageBar,
-    SECONDS_PER_MINUTE,
+    AutoGenCooldowns, AutoGenCounts, AutoGenTimers, DoubleStaminaButton, DoubleStaminaMode,
+    EggStorage, MessageBar, SECONDS_PER_MINUTE, AUTO_GEN_BATCH_LIMIT, AUTO_GEN_COOLDOWN_SECS,
 };
 use crate::board::{Board, BoardCell, ClickAction};
 use crate::economy::Economy;
@@ -43,9 +43,16 @@ pub(crate) fn tick_auto_generators(
     db: Res<ItemDatabase>,
     mut timers: ResMut<AutoGenTimers>,
     mut egg_storage: ResMut<EggStorage>,
+    mut counts: ResMut<AutoGenCounts>,
+    mut cooldowns: ResMut<AutoGenCooldowns>,
     mut message: ResMut<MessageBar>,
 ) {
     let delta = time.delta_secs();
+
+    // Tick down any active cooldowns first.
+    for secs in cooldowns.0.values_mut() {
+        *secs = (*secs - delta).max(0.0);
+    }
 
     // Collect auto-generator info (avoid borrow conflicts)
     let generators: Vec<(usize, f32, String)> = board
@@ -65,6 +72,21 @@ pub(crate) fn tick_auto_generators(
         .collect();
 
     for (idx, interval, gen_id) in generators {
+        // Skip generation while this cell is on cooldown.
+        let cd = cooldowns.0.entry(idx).or_insert(0.0);
+        if *cd > 0.0 {
+            // Try to auto-place any eggs that were already stored before cooldown.
+            let stored = *egg_storage.0.get(&idx).unwrap_or(&0);
+            if stored > 0 {
+                if let Some(near_idx) = board.nearest_empty(idx) {
+                    board.place(near_idx, &gen_id);
+                    let s = egg_storage.0.entry(idx).or_insert(0);
+                    *s = s.saturating_sub(1);
+                }
+            }
+            continue;
+        }
+
         let acc = timers.0.entry(idx).or_insert(0.0);
         *acc += delta;
         if *acc >= interval {
@@ -73,6 +95,20 @@ pub(crate) fn tick_auto_generators(
             let stored = egg_storage.0.entry(idx).or_insert(0);
             if *stored < 6 {
                 *stored += 1;
+
+                // Track how many pieces this cell has produced in this batch.
+                let count = counts.0.entry(idx).or_insert(0);
+                *count += 1;
+                if *count >= AUTO_GEN_BATCH_LIMIT {
+                    // Enter cooldown and reset the batch counter.
+                    *count = 0;
+                    *cd = AUTO_GEN_COOLDOWN_SECS;
+                    message.set(format!(
+                        "母棋已生成 {} 个棋子，冷却 {:.0} 分钟后可继续生成！",
+                        AUTO_GEN_BATCH_LIMIT,
+                        AUTO_GEN_COOLDOWN_SECS / SECONDS_PER_MINUTE
+                    ));
+                }
             }
             // Warn when the board is completely full and there are pending eggs
             // (check here so the message fires once per interval, not every frame)
@@ -100,6 +136,8 @@ pub(crate) fn handle_cell_interaction(
     mut economy: ResMut<Economy>,
     mut message: ResMut<MessageBar>,
     mut egg_storage: ResMut<EggStorage>,
+    cooldowns: Res<AutoGenCooldowns>,
+    counts: Res<AutoGenCounts>,
     double_stamina: Res<DoubleStaminaMode>,
     interaction_query: Query<(&Interaction, &BoardCell), Changed<Interaction>>,
 ) {
@@ -224,11 +262,23 @@ pub(crate) fn handle_cell_interaction(
                     if let Some(item) = db.get(&id) {
                         let hint = if item.is_auto_generator {
                             let pending = egg_storage.0.get(&idx).copied().unwrap_or(0);
-                            format!(
-                                "— 自动产蛋（每 {:.0} 分钟 1 枚，存 {}/6 枚），再次点击放置到最近空位",
-                                item.auto_gen_interval_secs / SECONDS_PER_MINUTE,
-                                pending
-                            )
+                            let cd = cooldowns.0.get(&idx).copied().unwrap_or(0.0);
+                            let batch_count = counts.0.get(&idx).copied().unwrap_or(0);
+                            if cd > 0.0 {
+                                format!(
+                                    "— 冷却中（{:.0} 秒后恢复），存 {}/6 枚，再次点击放置",
+                                    cd,
+                                    pending
+                                )
+                            } else {
+                                format!(
+                                    "— 自动产蛋（每 {:.0} 分钟 1 枚，本批 {}/{} 枚，存 {}/6 枚），再次点击放置到最近空位",
+                                    item.auto_gen_interval_secs / SECONDS_PER_MINUTE,
+                                    batch_count,
+                                    AUTO_GEN_BATCH_LIMIT,
+                                    pending
+                                )
+                            }
                         } else if item.is_generator {
                             let count = item.generates_count.max(1);
                             let stamina_cost = if double_stamina.active { 2 } else { 1 };
