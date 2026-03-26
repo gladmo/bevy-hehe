@@ -2,7 +2,8 @@
 use bevy::prelude::*;
 
 use crate::{
-    AutoGenTimers, EggStorage, MessageBar, SECONDS_PER_MINUTE,
+    AutoGenTimers, DoubleStaminaButton, DoubleStaminaMode, EggStorage, MessageBar,
+    SECONDS_PER_MINUTE,
 };
 use crate::board::{Board, BoardCell, ClickAction};
 use crate::economy::Economy;
@@ -99,6 +100,7 @@ pub(crate) fn handle_cell_interaction(
     mut economy: ResMut<Economy>,
     mut message: ResMut<MessageBar>,
     mut egg_storage: ResMut<EggStorage>,
+    double_stamina: Res<DoubleStaminaMode>,
     interaction_query: Query<(&Interaction, &BoardCell), Changed<Interaction>>,
 ) {
     for (interaction, cell) in &interaction_query {
@@ -153,15 +155,28 @@ pub(crate) fn handle_cell_interaction(
                     } else if item.is_generator {
                         let count = item.generates_count.max(1);
                         let consumes = item.consumes_on_generate;
-                        if economy.spend_stamina(1) {
+                        // Double-stamina mode: consume 2 stamina instead of 1,
+                        // but produce child pieces that are 1 level higher.
+                        // (老母鸡 auto-generators are exempt from this mode.)
+                        let stamina_cost = if double_stamina.active { 2 } else { 1 };
+                        if economy.spend_stamina(stamina_cost) {
                             let mut rng = rand::thread_rng();
                             let mut placed = 0u32;
                             let mut last_gen_id: Option<&'static str> = None;
                             for _ in 0..count {
                                 if let Some(gen_id) = item.pick_generated_item(&mut rng) {
-                                    if board.place_near(idx, gen_id) {
+                                    // In double-stamina mode, upgrade the generated piece
+                                    // by 1 level (use its merge_result_id when available).
+                                    let actual_gen_id = if double_stamina.active {
+                                        db.get(gen_id)
+                                            .and_then(|def| def.merge_result_id)
+                                            .unwrap_or(gen_id)
+                                    } else {
+                                        gen_id
+                                    };
+                                    if board.place_near(idx, actual_gen_id) {
                                         placed += 1;
-                                        last_gen_id = Some(gen_id);
+                                        last_gen_id = Some(actual_gen_id);
                                     } else {
                                         // Board full — stop early
                                         break;
@@ -171,7 +186,7 @@ pub(crate) fn handle_cell_interaction(
                             if placed == 0 {
                                 // Nothing placed — refund stamina
                                 economy.stamina =
-                                    (economy.stamina + 1).min(economy.max_stamina);
+                                    (economy.stamina + stamina_cost).min(economy.max_stamina);
                                 message.set("棋盘已满，无法生成！");
                             } else {
                                 if consumes {
@@ -216,11 +231,18 @@ pub(crate) fn handle_cell_interaction(
                             )
                         } else if item.is_generator {
                             let count = item.generates_count.max(1);
-                            if economy.stamina >= 1 {
+                            let stamina_cost = if double_stamina.active { 2 } else { 1 };
+                            if economy.stamina >= stamina_cost {
                                 if count > 1 {
-                                    format!("— 再次点击生成最多 {} 个棋子（耗1体力，剩余体力：{}）", count, economy.stamina)
+                                    format!(
+                                        "— 再次点击生成最多 {} 个棋子（耗{}体力，剩余体力：{}）",
+                                        count, stamina_cost, economy.stamina
+                                    )
                                 } else {
-                                    format!("— 再次点击生成（耗1体力，剩余体力：{}）", economy.stamina)
+                                    format!(
+                                        "— 再次点击生成（耗{}体力，剩余体力：{}）",
+                                        stamina_cost, economy.stamina
+                                    )
                                 }
                             } else {
                                 "— 体力不足，无法生成子棋".to_string()
@@ -279,6 +301,18 @@ pub(crate) fn handle_order_submit(
                 orders.fill_orders(&db);
                 message.set(format!("订单完成！获得 {} 铜板", reward));
             }
+        }
+    }
+}
+
+/// Toggle the double-stamina mode when the button in the top-right corner is pressed.
+pub(crate) fn handle_double_stamina_toggle(
+    mut mode: ResMut<DoubleStaminaMode>,
+    interaction_query: Query<&Interaction, (Changed<Interaction>, With<DoubleStaminaButton>)>,
+) {
+    for interaction in &interaction_query {
+        if *interaction == Interaction::Pressed {
+            mode.active = !mode.active;
         }
     }
 }

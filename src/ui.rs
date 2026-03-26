@@ -7,10 +7,10 @@ use crate::economy::{CoinsLabel, GemsLabel, LevelLabel, StaminaLabel};
 use crate::items::ItemDatabase;
 use crate::orders::{OrderItemIcon, OrderPanel, OrderSubmitButton, Orders};
 use crate::{
-    ActivityButton, DetailHint, DetailIcon, DetailName, DragGhost, MessageLabel, PreloadedImages,
-    SubmitBtn, WarehouseButton, ACCENT, ACCENT_GREEN, BOARD_BG, CELL_EMPTY, CELL_EMPTY_ALT,
-    DETAIL_BAR_BG, DETAIL_BAR_H, ORDER_BG, ORDER_SLOT_BG, OVERLAY_ALPHA, TEXT_MAIN, TEXT_MUTED,
-    TOP_BAR_BG, TOP_BAR_H,
+    ActivityButton, DetailHint, DetailIcon, DetailName, DoubleStaminaButton, DoubleStaminaLabel,
+    DragGhost, MessageLabel, PreloadedImages, SubmitBtn, WarehouseButton, ACCENT, ACCENT_GREEN,
+    BOARD_BG, CELL_EMPTY, CELL_EMPTY_ALT, DETAIL_BAR_BG, DETAIL_BAR_H, ORDER_BG, ORDER_SLOT_BG,
+    OVERLAY_ALPHA, TEXT_MAIN, TEXT_MUTED, TOP_BAR_BG, TOP_BAR_H,
 };
 
 /// Height of the horizontal order row at the top of the content area.
@@ -210,10 +210,34 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
             );
         });
 
-        // Right: placeholder to balance the flex layout
-        bar.spawn(Node {
-            width: px(100.0),
-            ..default()
+        // Right: double-stamina toggle button (top-right corner)
+        bar.spawn((
+            Button,
+            Node {
+                width: px(100.0),
+                height: px(44.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                border: UiRect::all(px(1.0)),
+                border_radius: BorderRadius::all(px(6.0)),
+                flex_shrink: 0.0,
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.20, 0.16, 0.10)),
+            BorderColor::all(Color::srgb(0.40, 0.32, 0.20)),
+            DoubleStaminaButton,
+        ))
+        .with_children(|btn| {
+            btn.spawn((
+                Text::new("×1 体力"),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 13.0,
+                    ..default()
+                },
+                TextColor(TEXT_MUTED),
+                DoubleStaminaLabel,
+            ));
         });
     });
 }

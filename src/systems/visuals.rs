@@ -2,9 +2,9 @@
 use bevy::prelude::*;
 
 use crate::{
-    DetailHint, DetailIcon, DetailName, MessageBar, MessageLabel, SubmitBtn,
-    ACCENT, CELL_EMPTY, CELL_EMPTY_ALT, CELL_HOVERED, CELL_SELECTED, DragState, EggStorage,
-    SECONDS_PER_MINUTE,
+    DetailHint, DetailIcon, DetailName, DoubleStaminaButton, DoubleStaminaLabel, DoubleStaminaMode,
+    MessageBar, MessageLabel, SubmitBtn, ACCENT, CELL_EMPTY, CELL_EMPTY_ALT, CELL_HOVERED,
+    CELL_SELECTED, DragState, EggStorage, SECONDS_PER_MINUTE,
 };
 use crate::board::{Board, BoardCell, CellImage, BOARD_COLS};
 use crate::economy::{CoinsLabel, Economy, GemsLabel, LevelLabel, StaminaLabel};
@@ -277,13 +277,14 @@ pub(crate) fn update_item_detail_bar(
     asset_server: Res<AssetServer>,
     egg_storage: Res<EggStorage>,
     economy: Res<Economy>,
+    double_stamina: Res<DoubleStaminaMode>,
     mut name_q: Query<&mut Text, (With<DetailName>, Without<DetailHint>)>,
     mut hint_q: Query<&mut Text, (With<DetailHint>, Without<DetailName>)>,
     mut icon_q: Query<&mut ImageNode, With<DetailIcon>>,
 ) {
     // Board is only marked changed when items move, merge, or the selection changes.
     // Egg storage changes once per hour (or on click), so both triggers are cheap.
-    if !board.is_changed() && !egg_storage.is_changed() {
+    if !board.is_changed() && !egg_storage.is_changed() && !double_stamina.is_changed() {
         return;
     }
 
@@ -303,10 +304,11 @@ pub(crate) fn update_item_detail_bar(
                             pending
                         )
                     } else if def.is_generator {
-                        if economy.stamina >= 1 {
+                        let stamina_cost = if double_stamina.active { 2 } else { 1 };
+                        if economy.stamina >= stamina_cost {
                             format!(
-                                "再次点击消耗 1 体力生成子棋（剩余体力：{}/{}）",
-                                economy.stamina, economy.max_stamina
+                                "再次点击消耗 {} 体力生成子棋（剩余体力：{}/{}）",
+                                stamina_cost, economy.stamina, economy.max_stamina
                             )
                         } else {
                             "体力不足！无法生成子棋（等待体力恢复）".to_string()
@@ -395,5 +397,40 @@ pub(crate) fn update_order_icons(
             img.image = Handle::default();
             node.display = Display::None;
         }
+    }
+}
+
+/// Update the double-stamina toggle button's appearance and label text.
+///
+/// Runs every frame only when `DoubleStaminaMode` has changed, keeping
+/// the button label and colors in sync with the current mode state.
+pub(crate) fn update_double_stamina_button(
+    mode: Res<DoubleStaminaMode>,
+    mut btn_q: Query<(&mut BackgroundColor, &mut BorderColor), With<DoubleStaminaButton>>,
+    mut label_q: Query<(&mut Text, &mut TextColor), With<DoubleStaminaLabel>>,
+) {
+    if !mode.is_changed() {
+        return;
+    }
+    if let Ok((mut bg, mut border)) = btn_q.single_mut() {
+        if mode.active {
+            bg.set_if_neq(BackgroundColor(Color::srgb(0.50, 0.20, 0.08)));
+            border.set_if_neq(BorderColor::all(Color::srgb(0.88, 0.50, 0.20)));
+        } else {
+            bg.set_if_neq(BackgroundColor(Color::srgb(0.20, 0.16, 0.10)));
+            border.set_if_neq(BorderColor::all(Color::srgb(0.40, 0.32, 0.20)));
+        }
+    }
+    if let Ok((mut text, mut color)) = label_q.single_mut() {
+        let new_label = if mode.active { "×2 体力 🔥" } else { "×1 体力" };
+        if **text != new_label {
+            **text = new_label.to_string();
+        }
+        let new_color = if mode.active {
+            TextColor(Color::srgb(1.0, 0.75, 0.35))
+        } else {
+            TextColor(Color::srgb(0.65, 0.60, 0.48))
+        };
+        color.set_if_neq(new_color);
     }
 }
