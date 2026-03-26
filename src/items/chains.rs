@@ -8,365 +8,365 @@ use super::types::{ChainType, GenerationOption, ItemDef};
 
 /// 老母鸡 Lv6 gen: 95% egg_1 + 5% egg_2
 static POULTRY_GEN_6: &[GenerationOption] = &[
-    GenerationOption::new("egg_1", 95, 0),
-    GenerationOption::new("egg_2",  5, 0),
+    GenerationOption::new("egg_1", 95),
+    GenerationOption::new("egg_2",  5),
 ];
 /// 老母鸡 Lv7 gen: 85% egg_1 + 10% egg_2 + 5% egg_3
 static POULTRY_GEN_7: &[GenerationOption] = &[
-    GenerationOption::new("egg_1", 85, 0),
-    GenerationOption::new("egg_2", 10, 0),
-    GenerationOption::new("egg_3",  5, 0),
+    GenerationOption::new("egg_1", 85),
+    GenerationOption::new("egg_2", 10),
+    GenerationOption::new("egg_3",  5),
 ];
 /// 老母鸡 Lv8 gen: 75% egg_1 + 12% egg_2 + 8% egg_3 + 5% egg_4
 static POULTRY_GEN_8: &[GenerationOption] = &[
-    GenerationOption::new("egg_1", 75, 0),
-    GenerationOption::new("egg_2", 12, 0),
-    GenerationOption::new("egg_3",  8, 0),
-    GenerationOption::new("egg_4",  5, 0),
+    GenerationOption::new("egg_1", 75),
+    GenerationOption::new("egg_2", 12),
+    GenerationOption::new("egg_3",  8),
+    GenerationOption::new("egg_4",  5),
 ];
 /// 老母鸡 Lv9 gen: 65% egg_1 + 15% egg_2 + 10% egg_3 + 7% egg_4 + 3% egg_5
 static POULTRY_GEN_9: &[GenerationOption] = &[
-    GenerationOption::new("egg_1", 65, 0),
-    GenerationOption::new("egg_2", 15, 0),
-    GenerationOption::new("egg_3", 10, 0),
-    GenerationOption::new("egg_4",  7, 0),
-    GenerationOption::new("egg_5",  3, 0),
+    GenerationOption::new("egg_1", 65),
+    GenerationOption::new("egg_2", 15),
+    GenerationOption::new("egg_3", 10),
+    GenerationOption::new("egg_4",  7),
+    GenerationOption::new("egg_5",  3),
 ];
 /// 老母鸡 Lv10 gen: 55% egg_1 + 17% egg_2 + 13% egg_3 + 10% egg_4 + 5% egg_5
 static POULTRY_GEN_10: &[GenerationOption] = &[
-    GenerationOption::new("egg_1", 55, 0),
-    GenerationOption::new("egg_2", 17, 0),
-    GenerationOption::new("egg_3", 13, 0),
-    GenerationOption::new("egg_4", 10, 0),
-    GenerationOption::new("egg_5",  5, 0),
+    GenerationOption::new("egg_1", 55),
+    GenerationOption::new("egg_2", 17),
+    GenerationOption::new("egg_3", 13),
+    GenerationOption::new("egg_4", 10),
+    GenerationOption::new("egg_5",  5),
 ];
 
 // ── 茶壶 (Teapot) per-level generation tables ─────────────────────────────────
 
 /// 茶壶 Lv4 gen: 95% coolTea_1 + 5% coolTea_2
 static TEAPOT_GEN_4: &[GenerationOption] = &[
-    GenerationOption::new("coolTea_1", 95, 0),
-    GenerationOption::new("coolTea_2",  5, 0),
+    GenerationOption::new("coolTea_1", 95),
+    GenerationOption::new("coolTea_2",  5),
 ];
 /// 茶壶 Lv5 gen: 88% coolTea_1 + 8% coolTea_2 + 4% coolTea_3
 static TEAPOT_GEN_5: &[GenerationOption] = &[
-    GenerationOption::new("coolTea_1", 88, 0),
-    GenerationOption::new("coolTea_2",  8, 0),
-    GenerationOption::new("coolTea_3",  4, 0),
+    GenerationOption::new("coolTea_1", 88),
+    GenerationOption::new("coolTea_2",  8),
+    GenerationOption::new("coolTea_3",  4),
 ];
 /// 茶壶 Lv6 gen: 80% coolTea_1 + 10% coolTea_2 + 6% coolTea_3 + 4% riceBall_1
 static TEAPOT_GEN_6: &[GenerationOption] = &[
-    GenerationOption::new("coolTea_1",  80, 0),
-    GenerationOption::new("coolTea_2",  10, 0),
-    GenerationOption::new("coolTea_3",   6, 0),
-    GenerationOption::new("riceBall_1",  4, 0),
+    GenerationOption::new("coolTea_1",  80),
+    GenerationOption::new("coolTea_2",  10),
+    GenerationOption::new("coolTea_3",   6),
+    GenerationOption::new("riceBall_1",  4),
 ];
 /// 茶壶 Lv7 gen: 70% coolTea_1 + 12% coolTea_2 + 8% coolTea_3 + 6% riceBall_1 + 4% coolTea_4
 static TEAPOT_GEN_7: &[GenerationOption] = &[
-    GenerationOption::new("coolTea_1",  70, 0),
-    GenerationOption::new("coolTea_2",  12, 0),
-    GenerationOption::new("coolTea_3",   8, 0),
-    GenerationOption::new("riceBall_1",  6, 0),
-    GenerationOption::new("coolTea_4",   4, 0),
+    GenerationOption::new("coolTea_1",  70),
+    GenerationOption::new("coolTea_2",  12),
+    GenerationOption::new("coolTea_3",   8),
+    GenerationOption::new("riceBall_1",  6),
+    GenerationOption::new("coolTea_4",   4),
 ];
 /// 茶壶 Lv8 gen: 60% coolTea_1 + 15% coolTea_2 + 10% coolTea_3 + 8% riceBall_1 + 5% coolTea_4 + 2% riceBall_2
 static TEAPOT_GEN_8: &[GenerationOption] = &[
-    GenerationOption::new("coolTea_1",  60, 0),
-    GenerationOption::new("coolTea_2",  15, 0),
-    GenerationOption::new("coolTea_3",  10, 0),
-    GenerationOption::new("riceBall_1",  8, 0),
-    GenerationOption::new("coolTea_4",   5, 0),
-    GenerationOption::new("riceBall_2",  2, 0),
+    GenerationOption::new("coolTea_1",  60),
+    GenerationOption::new("coolTea_2",  15),
+    GenerationOption::new("coolTea_3",  10),
+    GenerationOption::new("riceBall_1",  8),
+    GenerationOption::new("coolTea_4",   5),
+    GenerationOption::new("riceBall_2",  2),
 ];
 /// 茶壶 Lv9 gen: 50% coolTea_1 + 18% coolTea_2 + 12% coolTea_3 + 10% riceBall_1 + 6% coolTea_4 + 4% riceBall_2
 static TEAPOT_GEN_9: &[GenerationOption] = &[
-    GenerationOption::new("coolTea_1",  50, 0),
-    GenerationOption::new("coolTea_2",  18, 0),
-    GenerationOption::new("coolTea_3",  12, 0),
-    GenerationOption::new("riceBall_1", 10, 0),
-    GenerationOption::new("coolTea_4",   6, 0),
-    GenerationOption::new("riceBall_2",  4, 0),
+    GenerationOption::new("coolTea_1",  50),
+    GenerationOption::new("coolTea_2",  18),
+    GenerationOption::new("coolTea_3",  12),
+    GenerationOption::new("riceBall_1", 10),
+    GenerationOption::new("coolTea_4",   6),
+    GenerationOption::new("riceBall_2",  4),
 ];
 /// 茶壶 Lv10 gen: 40% coolTea_1 + 20% coolTea_2 + 15% coolTea_3 + 12% riceBall_1 + 8% coolTea_4 + 5% riceBall_2
 static TEAPOT_GEN_10: &[GenerationOption] = &[
-    GenerationOption::new("coolTea_1",  40, 0),
-    GenerationOption::new("coolTea_2",  20, 0),
-    GenerationOption::new("coolTea_3",  15, 0),
-    GenerationOption::new("riceBall_1", 12, 0),
-    GenerationOption::new("coolTea_4",   8, 0),
-    GenerationOption::new("riceBall_2",  5, 0),
+    GenerationOption::new("coolTea_1",  40),
+    GenerationOption::new("coolTea_2",  20),
+    GenerationOption::new("coolTea_3",  15),
+    GenerationOption::new("riceBall_1", 12),
+    GenerationOption::new("coolTea_4",   8),
+    GenerationOption::new("riceBall_2",  5),
 ];
 /// 茶壶 Lv11 gen: 30% coolTea_1 + 22% coolTea_2 + 18% coolTea_3 + 15% riceBall_1 + 10% coolTea_4 + 5% riceBall_2
 static TEAPOT_GEN_11: &[GenerationOption] = &[
-    GenerationOption::new("coolTea_1",  30, 0),
-    GenerationOption::new("coolTea_2",  22, 0),
-    GenerationOption::new("coolTea_3",  18, 0),
-    GenerationOption::new("riceBall_1", 15, 0),
-    GenerationOption::new("coolTea_4",  10, 0),
-    GenerationOption::new("riceBall_2",  5, 0),
+    GenerationOption::new("coolTea_1",  30),
+    GenerationOption::new("coolTea_2",  22),
+    GenerationOption::new("coolTea_3",  18),
+    GenerationOption::new("riceBall_1", 15),
+    GenerationOption::new("coolTea_4",  10),
+    GenerationOption::new("riceBall_2",  5),
 ];
 
 // ── 食篓 (Basket) per-level generation tables ─────────────────────────────────
 
 /// 食篓 Lv5 gen: 95% dough_1 + 5% dough_2
 static BASKET_GEN_5: &[GenerationOption] = &[
-    GenerationOption::new("dough_1", 95, 0),
-    GenerationOption::new("dough_2",  5, 0),
+    GenerationOption::new("dough_1", 95),
+    GenerationOption::new("dough_2",  5),
 ];
 /// 食篓 Lv6 gen: 88% dough_1 + 8% dough_2 + 4% dough_3
 static BASKET_GEN_6: &[GenerationOption] = &[
-    GenerationOption::new("dough_1", 88, 0),
-    GenerationOption::new("dough_2",  8, 0),
-    GenerationOption::new("dough_3",  4, 0),
+    GenerationOption::new("dough_1", 88),
+    GenerationOption::new("dough_2",  8),
+    GenerationOption::new("dough_3",  4),
 ];
 /// 食篓 Lv7 gen: 80% dough_1 + 10% dough_2 + 6% dough_3 + 4% watermelon_1
 static BASKET_GEN_7: &[GenerationOption] = &[
-    GenerationOption::new("dough_1",      80, 0),
-    GenerationOption::new("dough_2",      10, 0),
-    GenerationOption::new("dough_3",       6, 0),
-    GenerationOption::new("watermelon_1",  4, 0),
+    GenerationOption::new("dough_1",      80),
+    GenerationOption::new("dough_2",      10),
+    GenerationOption::new("dough_3",       6),
+    GenerationOption::new("watermelon_1",  4),
 ];
 /// 食篓 Lv8 gen: 70% dough_1 + 12% dough_2 + 8% dough_3 + 6% watermelon_1 + 4% dough_4
 static BASKET_GEN_8: &[GenerationOption] = &[
-    GenerationOption::new("dough_1",      70, 0),
-    GenerationOption::new("dough_2",      12, 0),
-    GenerationOption::new("dough_3",       8, 0),
-    GenerationOption::new("watermelon_1",  6, 0),
-    GenerationOption::new("dough_4",       4, 0),
+    GenerationOption::new("dough_1",      70),
+    GenerationOption::new("dough_2",      12),
+    GenerationOption::new("dough_3",       8),
+    GenerationOption::new("watermelon_1",  6),
+    GenerationOption::new("dough_4",       4),
 ];
 /// 食篓 Lv9 gen: 60% dough_1 + 15% dough_2 + 10% dough_3 + 8% watermelon_1 + 5% dough_4 + 2% watermelon_2
 static BASKET_GEN_9: &[GenerationOption] = &[
-    GenerationOption::new("dough_1",      60, 0),
-    GenerationOption::new("dough_2",      15, 0),
-    GenerationOption::new("dough_3",      10, 0),
-    GenerationOption::new("watermelon_1",  8, 0),
-    GenerationOption::new("dough_4",       5, 0),
-    GenerationOption::new("watermelon_2",  2, 0),
+    GenerationOption::new("dough_1",      60),
+    GenerationOption::new("dough_2",      15),
+    GenerationOption::new("dough_3",      10),
+    GenerationOption::new("watermelon_1",  8),
+    GenerationOption::new("dough_4",       5),
+    GenerationOption::new("watermelon_2",  2),
 ];
 /// 食篓 Lv10 gen: 50% dough_1 + 18% dough_2 + 12% dough_3 + 10% watermelon_1 + 6% dough_4 + 4% watermelon_2
 static BASKET_GEN_10: &[GenerationOption] = &[
-    GenerationOption::new("dough_1",      50, 0),
-    GenerationOption::new("dough_2",      18, 0),
-    GenerationOption::new("dough_3",      12, 0),
-    GenerationOption::new("watermelon_1", 10, 0),
-    GenerationOption::new("dough_4",       6, 0),
-    GenerationOption::new("watermelon_2",  4, 0),
+    GenerationOption::new("dough_1",      50),
+    GenerationOption::new("dough_2",      18),
+    GenerationOption::new("dough_3",      12),
+    GenerationOption::new("watermelon_1", 10),
+    GenerationOption::new("dough_4",       6),
+    GenerationOption::new("watermelon_2",  4),
 ];
 /// 食篓 Lv11 gen: 40% dough_1 + 20% dough_2 + 15% dough_3 + 12% watermelon_1 + 8% dough_4 + 5% watermelon_2
 static BASKET_GEN_11: &[GenerationOption] = &[
-    GenerationOption::new("dough_1",      40, 0),
-    GenerationOption::new("dough_2",      20, 0),
-    GenerationOption::new("dough_3",      15, 0),
-    GenerationOption::new("watermelon_1", 12, 0),
-    GenerationOption::new("dough_4",       8, 0),
-    GenerationOption::new("watermelon_2",  5, 0),
+    GenerationOption::new("dough_1",      40),
+    GenerationOption::new("dough_2",      20),
+    GenerationOption::new("dough_3",      15),
+    GenerationOption::new("watermelon_1", 12),
+    GenerationOption::new("dough_4",       8),
+    GenerationOption::new("watermelon_2",  5),
 ];
 
 // ── 手作盒 (CraftBox) per-level generation tables ─────────────────────────────
 
 /// 手作盒 Lv5 gen: 95% lantern_1 + 5% lantern_2
 static CRAFTBOX_GEN_5: &[GenerationOption] = &[
-    GenerationOption::new("lantern_1", 95, 0),
-    GenerationOption::new("lantern_2",  5, 0),
+    GenerationOption::new("lantern_1", 95),
+    GenerationOption::new("lantern_2",  5),
 ];
 /// 手作盒 Lv6 gen: 88% lantern_1 + 8% lantern_2 + 4% lantern_3
 static CRAFTBOX_GEN_6: &[GenerationOption] = &[
-    GenerationOption::new("lantern_1", 88, 0),
-    GenerationOption::new("lantern_2",  8, 0),
-    GenerationOption::new("lantern_3",  4, 0),
+    GenerationOption::new("lantern_1", 88),
+    GenerationOption::new("lantern_2",  8),
+    GenerationOption::new("lantern_3",  4),
 ];
 /// 手作盒 Lv7 gen: 80% lantern_1 + 10% lantern_2 + 6% lantern_3 + 4% lantern_4
 static CRAFTBOX_GEN_7: &[GenerationOption] = &[
-    GenerationOption::new("lantern_1", 80, 0),
-    GenerationOption::new("lantern_2", 10, 0),
-    GenerationOption::new("lantern_3",  6, 0),
-    GenerationOption::new("lantern_4",  4, 0),
+    GenerationOption::new("lantern_1", 80),
+    GenerationOption::new("lantern_2", 10),
+    GenerationOption::new("lantern_3",  6),
+    GenerationOption::new("lantern_4",  4),
 ];
 /// 手作盒 Lv8 gen: 70% lantern_1 + 12% lantern_2 + 8% lantern_3 + 6% lantern_4 + 4% lantern_5
 static CRAFTBOX_GEN_8: &[GenerationOption] = &[
-    GenerationOption::new("lantern_1", 70, 0),
-    GenerationOption::new("lantern_2", 12, 0),
-    GenerationOption::new("lantern_3",  8, 0),
-    GenerationOption::new("lantern_4",  6, 0),
-    GenerationOption::new("lantern_5",  4, 0),
+    GenerationOption::new("lantern_1", 70),
+    GenerationOption::new("lantern_2", 12),
+    GenerationOption::new("lantern_3",  8),
+    GenerationOption::new("lantern_4",  6),
+    GenerationOption::new("lantern_5",  4),
 ];
 /// 手作盒 Lv9 gen: 60% lantern_1 + 15% lantern_2 + 10% lantern_3 + 8% lantern_4 + 5% lantern_5 + 2% lantern_6
 static CRAFTBOX_GEN_9: &[GenerationOption] = &[
-    GenerationOption::new("lantern_1", 60, 0),
-    GenerationOption::new("lantern_2", 15, 0),
-    GenerationOption::new("lantern_3", 10, 0),
-    GenerationOption::new("lantern_4",  8, 0),
-    GenerationOption::new("lantern_5",  5, 0),
-    GenerationOption::new("lantern_6",  2, 0),
+    GenerationOption::new("lantern_1", 60),
+    GenerationOption::new("lantern_2", 15),
+    GenerationOption::new("lantern_3", 10),
+    GenerationOption::new("lantern_4",  8),
+    GenerationOption::new("lantern_5",  5),
+    GenerationOption::new("lantern_6",  2),
 ];
 /// 手作盒 Lv10 gen: 50% lantern_1 + 18% lantern_2 + 12% lantern_3 + 10% lantern_4 + 6% lantern_5 + 4% lantern_6
 static CRAFTBOX_GEN_10: &[GenerationOption] = &[
-    GenerationOption::new("lantern_1", 50, 0),
-    GenerationOption::new("lantern_2", 18, 0),
-    GenerationOption::new("lantern_3", 12, 0),
-    GenerationOption::new("lantern_4", 10, 0),
-    GenerationOption::new("lantern_5",  6, 0),
-    GenerationOption::new("lantern_6",  4, 0),
+    GenerationOption::new("lantern_1", 50),
+    GenerationOption::new("lantern_2", 18),
+    GenerationOption::new("lantern_3", 12),
+    GenerationOption::new("lantern_4", 10),
+    GenerationOption::new("lantern_5",  6),
+    GenerationOption::new("lantern_6",  4),
 ];
 /// 手作盒 Lv11 gen: 40% lantern_1 + 20% lantern_2 + 15% lantern_3 + 12% lantern_4 + 8% lantern_5 + 5% lantern_6
 static CRAFTBOX_GEN_11: &[GenerationOption] = &[
-    GenerationOption::new("lantern_1", 40, 0),
-    GenerationOption::new("lantern_2", 20, 0),
-    GenerationOption::new("lantern_3", 15, 0),
-    GenerationOption::new("lantern_4", 12, 0),
-    GenerationOption::new("lantern_5",  8, 0),
-    GenerationOption::new("lantern_6",  5, 0),
+    GenerationOption::new("lantern_1", 40),
+    GenerationOption::new("lantern_2", 20),
+    GenerationOption::new("lantern_3", 15),
+    GenerationOption::new("lantern_4", 12),
+    GenerationOption::new("lantern_5",  8),
+    GenerationOption::new("lantern_6",  5),
 ];
 
 /// 妆奁 Lv5 gen: 95% 蓝宝石 + 5% 金戒指
 static DRESSER_GEN_5: &[GenerationOption] = &[
-    GenerationOption::new("ring_1", 95, 0),
-    GenerationOption::new("ring_2",  5, 0),
+    GenerationOption::new("ring_1", 95),
+    GenerationOption::new("ring_2",  5),
 ];
 
 /// 妆奁 Lv6 gen: 90% 蓝宝石 + 8% 金戒指 + 2% 宝石戒指
 static DRESSER_GEN_6: &[GenerationOption] = &[
-    GenerationOption::new("ring_1", 90, 0),
-    GenerationOption::new("ring_2",  8, 0),
-    GenerationOption::new("ring_3",  2, 0),
+    GenerationOption::new("ring_1", 90),
+    GenerationOption::new("ring_2",  8),
+    GenerationOption::new("ring_3",  2),
 ];
 
 /// 妆奁 Lv7 gen: 80% ring_1 + 12% ring_2 + 6% ring_3 + 2% ring_4
 static DRESSER_GEN_7: &[GenerationOption] = &[
-    GenerationOption::new("ring_1", 80, 0),
-    GenerationOption::new("ring_2", 12, 0),
-    GenerationOption::new("ring_3",  6, 0),
-    GenerationOption::new("ring_4",  2, 0),
+    GenerationOption::new("ring_1", 80),
+    GenerationOption::new("ring_2", 12),
+    GenerationOption::new("ring_3",  6),
+    GenerationOption::new("ring_4",  2),
 ];
 
 /// 妆奁 Lv8 gen: 70% ring_1 + 15% ring_2 + 10% ring_3 + 3% ring_4 + 2% ring_5
 static DRESSER_GEN_8: &[GenerationOption] = &[
-    GenerationOption::new("ring_1", 70, 0),
-    GenerationOption::new("ring_2", 15, 0),
-    GenerationOption::new("ring_3", 10, 0),
-    GenerationOption::new("ring_4",  3, 0),
-    GenerationOption::new("ring_5",  2, 0),
+    GenerationOption::new("ring_1", 70),
+    GenerationOption::new("ring_2", 15),
+    GenerationOption::new("ring_3", 10),
+    GenerationOption::new("ring_4",  3),
+    GenerationOption::new("ring_5",  2),
 ];
 
 /// 妆奁 Lv9 gen: 60% ring_1 + 18% ring_2 + 12% ring_3 + 6% ring_4 + 2% ring_5 + 2% 平安扣
 static DRESSER_GEN_9: &[GenerationOption] = &[
-    GenerationOption::new("ring_1",      60, 0),
-    GenerationOption::new("ring_2",      18, 0),
-    GenerationOption::new("ring_3",      12, 0),
-    GenerationOption::new("ring_4",       6, 0),
-    GenerationOption::new("ring_5",       2, 0),
-    GenerationOption::new("peaceLock_1",  2, 0),
+    GenerationOption::new("ring_1",      60),
+    GenerationOption::new("ring_2",      18),
+    GenerationOption::new("ring_3",      12),
+    GenerationOption::new("ring_4",       6),
+    GenerationOption::new("ring_5",       2),
+    GenerationOption::new("peaceLock_1",  2),
 ];
 
 /// 妆奁 Lv10 gen: 50% ring_1 + 20% ring_2 + 15% ring_3 + 8% ring_4 + 4% ring_5 + 3% 平安扣
 static DRESSER_GEN_10: &[GenerationOption] = &[
-    GenerationOption::new("ring_1",      50, 0),
-    GenerationOption::new("ring_2",      20, 0),
-    GenerationOption::new("ring_3",      15, 0),
-    GenerationOption::new("ring_4",       8, 0),
-    GenerationOption::new("ring_5",       4, 0),
-    GenerationOption::new("peaceLock_1",  3, 0),
+    GenerationOption::new("ring_1",      50),
+    GenerationOption::new("ring_2",      20),
+    GenerationOption::new("ring_3",      15),
+    GenerationOption::new("ring_4",       8),
+    GenerationOption::new("ring_5",       4),
+    GenerationOption::new("peaceLock_1",  3),
 ];
 
 /// 妆奁 Lv11 gen: 40% ring_1 + 20% ring_2 + 18% ring_3 + 12% ring_4 + 6% ring_5 + 4% 平安扣
 static DRESSER_GEN_11: &[GenerationOption] = &[
-    GenerationOption::new("ring_1",      40, 0),
-    GenerationOption::new("ring_2",      20, 0),
-    GenerationOption::new("ring_3",      18, 0),
-    GenerationOption::new("ring_4",      12, 0),
-    GenerationOption::new("ring_5",       6, 0),
-    GenerationOption::new("peaceLock_1",  4, 0),
+    GenerationOption::new("ring_1",      40),
+    GenerationOption::new("ring_2",      20),
+    GenerationOption::new("ring_3",      18),
+    GenerationOption::new("ring_4",      12),
+    GenerationOption::new("ring_5",       6),
+    GenerationOption::new("peaceLock_1",  4),
 ];
 
 // ── 织布机 (Loom) per-level generation tables ─────────────────────────────────
 
 /// 织布机 Lv5 gen: 95% fabric_1 + 5% fabric_2
 static LOOM_GEN_5: &[GenerationOption] = &[
-    GenerationOption::new("fabric_1", 95, 0),
-    GenerationOption::new("fabric_2",  5, 0),
+    GenerationOption::new("fabric_1", 95),
+    GenerationOption::new("fabric_2",  5),
 ];
 /// 织布机 Lv6 gen: 88% fabric_1 + 8% fabric_2 + 4% fabric_3
 static LOOM_GEN_6: &[GenerationOption] = &[
-    GenerationOption::new("fabric_1", 88, 0),
-    GenerationOption::new("fabric_2",  8, 0),
-    GenerationOption::new("fabric_3",  4, 0),
+    GenerationOption::new("fabric_1", 88),
+    GenerationOption::new("fabric_2",  8),
+    GenerationOption::new("fabric_3",  4),
 ];
 /// 织布机 Lv7 gen: 80% fabric_1 + 10% fabric_2 + 6% fabric_3 + 4% fabric_4
 static LOOM_GEN_7: &[GenerationOption] = &[
-    GenerationOption::new("fabric_1", 80, 0),
-    GenerationOption::new("fabric_2", 10, 0),
-    GenerationOption::new("fabric_3",  6, 0),
-    GenerationOption::new("fabric_4",  4, 0),
+    GenerationOption::new("fabric_1", 80),
+    GenerationOption::new("fabric_2", 10),
+    GenerationOption::new("fabric_3",  6),
+    GenerationOption::new("fabric_4",  4),
 ];
 /// 织布机 Lv8 gen: 70% fabric_1 + 12% fabric_2 + 8% fabric_3 + 6% fabric_4 + 4% fabric_5
 static LOOM_GEN_8: &[GenerationOption] = &[
-    GenerationOption::new("fabric_1", 70, 0),
-    GenerationOption::new("fabric_2", 12, 0),
-    GenerationOption::new("fabric_3",  8, 0),
-    GenerationOption::new("fabric_4",  6, 0),
-    GenerationOption::new("fabric_5",  4, 0),
+    GenerationOption::new("fabric_1", 70),
+    GenerationOption::new("fabric_2", 12),
+    GenerationOption::new("fabric_3",  8),
+    GenerationOption::new("fabric_4",  6),
+    GenerationOption::new("fabric_5",  4),
 ];
 /// 织布机 Lv9 gen: 60% fabric_1 + 15% fabric_2 + 10% fabric_3 + 8% fabric_4 + 7% fabric_5
 static LOOM_GEN_9: &[GenerationOption] = &[
-    GenerationOption::new("fabric_1", 60, 0),
-    GenerationOption::new("fabric_2", 15, 0),
-    GenerationOption::new("fabric_3", 10, 0),
-    GenerationOption::new("fabric_4",  8, 0),
-    GenerationOption::new("fabric_5",  7, 0),
+    GenerationOption::new("fabric_1", 60),
+    GenerationOption::new("fabric_2", 15),
+    GenerationOption::new("fabric_3", 10),
+    GenerationOption::new("fabric_4",  8),
+    GenerationOption::new("fabric_5",  7),
 ];
 /// 织布机 Lv10 gen: 50% fabric_1 + 18% fabric_2 + 12% fabric_3 + 10% fabric_4 + 10% fabric_5
 static LOOM_GEN_10: &[GenerationOption] = &[
-    GenerationOption::new("fabric_1", 50, 0),
-    GenerationOption::new("fabric_2", 18, 0),
-    GenerationOption::new("fabric_3", 12, 0),
-    GenerationOption::new("fabric_4", 10, 0),
-    GenerationOption::new("fabric_5", 10, 0),
+    GenerationOption::new("fabric_1", 50),
+    GenerationOption::new("fabric_2", 18),
+    GenerationOption::new("fabric_3", 12),
+    GenerationOption::new("fabric_4", 10),
+    GenerationOption::new("fabric_5", 10),
 ];
 /// 织布机 Lv11 gen: 40% fabric_1 + 20% fabric_2 + 15% fabric_3 + 12% fabric_4 + 13% fabric_5
 static LOOM_GEN_11: &[GenerationOption] = &[
-    GenerationOption::new("fabric_1", 40, 0),
-    GenerationOption::new("fabric_2", 20, 0),
-    GenerationOption::new("fabric_3", 15, 0),
-    GenerationOption::new("fabric_4", 12, 0),
-    GenerationOption::new("fabric_5", 13, 0),
+    GenerationOption::new("fabric_1", 40),
+    GenerationOption::new("fabric_2", 20),
+    GenerationOption::new("fabric_3", 15),
+    GenerationOption::new("fabric_4", 12),
+    GenerationOption::new("fabric_5", 13),
 ];
 
 /// 绫罗布匹 (fabric_5) gen: 90% 绣花荷包 + 10% 绣花荷包Lv2
 static FABRIC5_GEN: &[GenerationOption] = &[
-    GenerationOption::new("pouch_1", 90, 0),
-    GenerationOption::new("pouch_2", 10, 0),
+    GenerationOption::new("pouch_1", 90),
+    GenerationOption::new("pouch_2", 10),
 ];
 
 /// 红色漆盒 Lv1 gen: mostly lv1 generators + small chance of lv2
 static RED_BOX_LV1_GEN: &[GenerationOption] = &[
-    GenerationOption::new("teapot_1", 32, 0),
-    GenerationOption::new("basket_1", 32, 0),
-    GenerationOption::new("loom_1",   31, 0),
-    GenerationOption::new("teapot_2",  2, 0),
-    GenerationOption::new("basket_2",  2, 0),
-    GenerationOption::new("loom_2",    1, 0),
+    GenerationOption::new("teapot_1", 32),
+    GenerationOption::new("basket_1", 32),
+    GenerationOption::new("loom_1",   31),
+    GenerationOption::new("teapot_2",  2),
+    GenerationOption::new("basket_2",  2),
+    GenerationOption::new("loom_2",    1),
 ];
 /// 红色漆盒 Lv2 gen: mostly lv2 generators + small chance of lv3
 static RED_BOX_LV2_GEN: &[GenerationOption] = &[
-    GenerationOption::new("teapot_2", 30, 0),
-    GenerationOption::new("basket_2", 30, 0),
-    GenerationOption::new("loom_2",   30, 0),
-    GenerationOption::new("teapot_3",  3, 0),
-    GenerationOption::new("basket_3",  4, 0),
-    GenerationOption::new("loom_3",    3, 0),
+    GenerationOption::new("teapot_2", 30),
+    GenerationOption::new("basket_2", 30),
+    GenerationOption::new("loom_2",   30),
+    GenerationOption::new("teapot_3",  3),
+    GenerationOption::new("basket_3",  4),
+    GenerationOption::new("loom_3",    3),
 ];
 
 /// 绿色漆盒 Lv1 gen: 老母鸡/妆奁/手作盒 (equal chance)
 static GREEN_BOX_LV1_GEN: &[GenerationOption] = &[
-    GenerationOption::new("poultry_1", 1, 0),
-    GenerationOption::new("dresser_1", 1, 0),
-    GenerationOption::new("craftBox_1", 1, 0),
+    GenerationOption::new("poultry_1", 1),
+    GenerationOption::new("dresser_1", 1),
+    GenerationOption::new("craftBox_1", 1),
 ];
 /// 绿色漆盒 Lv2 gen: 老母鸡Lv2/妆奁Lv2/手作盒Lv2 (equal chance)
 static GREEN_BOX_LV2_GEN: &[GenerationOption] = &[
-    GenerationOption::new("poultry_2", 1, 0),
-    GenerationOption::new("dresser_2", 1, 0),
-    GenerationOption::new("craftBox_2", 1, 0),
+    GenerationOption::new("poultry_2", 1),
+    GenerationOption::new("dresser_2", 1),
+    GenerationOption::new("craftBox_2", 1),
 ];
 
 /// All item definitions in the game.
