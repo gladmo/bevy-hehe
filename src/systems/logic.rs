@@ -2,9 +2,9 @@
 use bevy::prelude::*;
 
 use crate::{
-    AutoGenCooldowns, AutoGenCounts, AutoGenTimers, DoubleStaminaButton, DoubleStaminaMode,
-    EggStorage, GeneratorUsesRemaining, MessageBar, SECONDS_PER_MINUTE, AUTO_GEN_BATCH_LIMIT,
-    AUTO_GEN_COOLDOWN_SECS,
+    ActivityButton, AutoGenCooldowns, AutoGenCounts, AutoGenTimers, DoubleStaminaButton,
+    DoubleStaminaMode, EggStorage, GameAudio, GeneratorUsesRemaining, MessageBar,
+    SECONDS_PER_MINUTE, AUTO_GEN_BATCH_LIMIT, AUTO_GEN_COOLDOWN_SECS, WarehouseButton,
 };
 use crate::board::{Board, BoardCell, ClickAction};
 use crate::economy::Economy;
@@ -132,6 +132,7 @@ pub(crate) fn tick_auto_generators(
 }
 
 pub(crate) fn handle_cell_interaction(
+    mut commands: Commands,
     mut board: ResMut<Board>,
     db: Res<ItemDatabase>,
     mut economy: ResMut<Economy>,
@@ -141,6 +142,7 @@ pub(crate) fn handle_cell_interaction(
     cooldowns: Res<AutoGenCooldowns>,
     counts: Res<AutoGenCounts>,
     double_stamina: Res<DoubleStaminaMode>,
+    game_audio: Res<GameAudio>,
     interaction_query: Query<(&Interaction, &BoardCell), Changed<Interaction>>,
 ) {
     for (interaction, cell) in &interaction_query {
@@ -161,6 +163,10 @@ pub(crate) fn handle_cell_interaction(
                         item.name, item.level, hint
                     ));
                     economy.add_exp(10 * item.level as u64);
+                    // Play merge SFX: merge_lv{result_level}, fallback to merge_lv9.
+                    if let Some(sfx) = game_audio.merge_sfx(item.level) {
+                        commands.spawn((AudioPlayer::new(sfx), PlaybackSettings::DESPAWN));
+                    }
                 }
             }
             ClickAction::GeneratorActivated(idx, item_id) => {
@@ -357,16 +363,22 @@ pub(crate) fn handle_cell_interaction(
 }
 
 pub(crate) fn handle_order_submit(
+    mut commands: Commands,
     mut board: ResMut<Board>,
     mut economy: ResMut<Economy>,
     mut orders: ResMut<Orders>,
     db: Res<ItemDatabase>,
     mut message: ResMut<MessageBar>,
+    game_audio: Res<GameAudio>,
     interaction_query: Query<(&Interaction, &OrderSubmitButton), Changed<Interaction>>,
 ) {
     for (interaction, submit_btn) in &interaction_query {
         if *interaction != Interaction::Pressed {
             continue;
+        }
+        // Play the order-submit (button press) sound every time the button is pressed.
+        if let Some(sfx) = game_audio.get("order_serve") {
+            commands.spawn((AudioPlayer::new(sfx), PlaybackSettings::DESPAWN));
         }
         let slot = submit_btn.order_id as usize;
         if let Some(order) = orders.orders.get(slot) {
@@ -383,6 +395,10 @@ pub(crate) fn handle_order_submit(
                 economy.add_exp(50);
                 orders.fill_orders(&db);
                 message.set(format!("订单完成！获得 {} 铜板", reward));
+                // Play the order-complete sound on successful fulfillment.
+                if let Some(sfx) = game_audio.get("order_complete") {
+                    commands.spawn((AudioPlayer::new(sfx), PlaybackSettings::DESPAWN));
+                }
             }
         }
     }
@@ -396,6 +412,29 @@ pub(crate) fn handle_double_stamina_toggle(
     for interaction in &interaction_query {
         if *interaction == Interaction::Pressed {
             mode.active = !mode.active;
+        }
+    }
+}
+
+/// Play the generic button-click sound for UI buttons that don't have their own SFX.
+///
+/// Covers [`DoubleStaminaButton`], [`WarehouseButton`], and [`ActivityButton`].
+pub(crate) fn handle_button_click(
+    mut commands: Commands,
+    game_audio: Res<GameAudio>,
+    double_stamina_query: Query<&Interaction, (Changed<Interaction>, With<DoubleStaminaButton>)>,
+    warehouse_query: Query<&Interaction, (Changed<Interaction>, With<WarehouseButton>)>,
+    activity_query: Query<&Interaction, (Changed<Interaction>, With<ActivityButton>)>,
+) {
+    let any_pressed = double_stamina_query
+        .iter()
+        .chain(warehouse_query.iter())
+        .chain(activity_query.iter())
+        .any(|i| *i == Interaction::Pressed);
+
+    if any_pressed {
+        if let Some(sfx) = game_audio.get("button_click") {
+            commands.spawn((AudioPlayer::new(sfx), PlaybackSettings::DESPAWN));
         }
     }
 }
