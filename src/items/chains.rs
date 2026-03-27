@@ -575,10 +575,9 @@ pub fn all_items() -> Vec<ItemDef> {
     items.push(ItemDef::child("fabric_3", ChainType::Fabric, 3, "绣花布匹", "✨", Some("fabric_4"), fc, Some("images/items/item_icon_30103.png")));
     items.push(ItemDef::child("fabric_4", ChainType::Fabric, 4, "三匹绣花布", "🌺", Some("fabric_5"), fc, Some("images/items/item_icon_30104.png")));
     // fabric_5 is max level AND a click-generator that produces 荷包 (no merge available)
-    // generates 12 荷包 at once and then consumes itself
+    // Produces 1 荷包 per activation; consumed after 12 uses (total = 12 荷包).
     let mut fabric_5 = ItemDef::generator("fabric_5", ChainType::Fabric, 5, "多匹绣花布", "🎀", FABRIC5_GEN, "pouch_1", None, fc, Some("images/items/item_icon_30105.png"));
-    fabric_5.generates_count = 12;
-    fabric_5.consumes_on_generate = true;
+    fabric_5.max_generate_count = 12;
     items.push(fabric_5);
 
     // ── 荷包 (Pouch) child chain (10 levels) ──────────────────────────────────
@@ -595,23 +594,25 @@ pub fn all_items() -> Vec<ItemDef> {
     items.push(ItemDef::child("pouch_10", ChainType::Pouch, 10, "菡萏云囊挎包", "🌟", None,             poc, Some("images/items/item_icon_20710.png")));
 
     // ── 红色漆盒 (RedBox) reward gift box (2 levels) ─────────────────────────
-    // Lv1 opens 8 items; Lv2 opens 16 items.
+    // Lv1 opens 1 item per activation, consumed after 8 uses (total = 8 items).
+    // Lv2 opens 1 item per activation, consumed after 16 uses (total = 16 items).
     let rdc = (0.90, 0.20, 0.15); // deep red
     let mut red_box_1 = ItemDef::generator("redBox_1", ChainType::RedBox, 1, "红色漆盒", "🧧", RED_BOX_LV1_GEN, "teapot_1", Some("redBox_2"), rdc, Some("images/items/item_icon_30201.png"));
-    red_box_1.generates_count = 8;
+    red_box_1.max_generate_count = 8;
     items.push(red_box_1);
     let mut red_box_2 = ItemDef::generator("redBox_2", ChainType::RedBox, 2, "红色漆盒", "🧧", RED_BOX_LV2_GEN, "teapot_2", None, rdc, Some("images/items/item_icon_30202.png"));
-    red_box_2.generates_count = 16;
+    red_box_2.max_generate_count = 16;
     items.push(red_box_2);
 
     // ── 绿色漆盒 (GreenBox) reward gift box (2 levels) ───────────────────────
-    // Lv1 opens 8 items; Lv2 opens 16 items.
+    // Lv1 opens 1 item per activation, consumed after 8 uses (total = 8 items).
+    // Lv2 opens 1 item per activation, consumed after 16 uses (total = 16 items).
     let gbc = (0.20, 0.65, 0.30); // deep green
     let mut green_box_1 = ItemDef::generator("greenBox_1", ChainType::GreenBox, 1, "绿色漆盒", "🎁", GREEN_BOX_LV1_GEN, "poultry_1", Some("greenBox_2"), gbc, Some("images/items/item_icon_30301.png"));
-    green_box_1.generates_count = 8;
+    green_box_1.max_generate_count = 8;
     items.push(green_box_1);
     let mut green_box_2 = ItemDef::generator("greenBox_2", ChainType::GreenBox, 2, "绿色漆盒", "🎁", GREEN_BOX_LV2_GEN, "poultry_2", None, gbc, Some("images/items/item_icon_30302.png"));
-    green_box_2.generates_count = 16;
+    green_box_2.max_generate_count = 16;
     items.push(green_box_2);
 
     items

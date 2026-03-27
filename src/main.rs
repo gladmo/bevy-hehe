@@ -156,6 +156,11 @@ pub(crate) struct AutoGenCounts(pub(crate) std::collections::HashMap<usize, u32>
 #[derive(Resource, Default, Debug)]
 pub(crate) struct AutoGenCooldowns(pub(crate) std::collections::HashMap<usize, f32>);
 
+/// Remaining activations for limited-use click-generators (cell index → remaining uses).
+/// Used by generators with `max_generate_count > 0`; removed when the generator is consumed.
+#[derive(Resource, Default, Debug)]
+pub(crate) struct GeneratorUsesRemaining(pub(crate) std::collections::HashMap<usize, u32>);
+
 /// Accumulated time for spawning rising-star animations on auto-generator cells.
 #[derive(Resource, Default)]
 pub(crate) struct StarSpawnTimer(pub(crate) f32);
@@ -362,6 +367,7 @@ fn main() {
     .insert_resource(EggStorage::default())
     .insert_resource(AutoGenCounts::default())
     .insert_resource(AutoGenCooldowns::default())
+    .insert_resource(GeneratorUsesRemaining::default())
     .insert_resource(StarSpawnTimer::default())
     .insert_resource(MessageBar::default())
     .insert_resource(DragState::default())

@@ -87,6 +87,9 @@ pub struct ItemDef {
     pub generates_count: u32,
     /// If true, the generator removes itself from the board after generating.
     pub consumes_on_generate: bool,
+    /// If > 0, the generator can only be activated this many times total before being consumed.
+    /// 0 means unlimited activations (consumes_on_generate still applies for single-use).
+    pub max_generate_count: u32,
 }
 
 impl ItemDef {
@@ -136,6 +139,7 @@ impl ItemDef {
             bg_color,
             generates_count: 1,
             consumes_on_generate: false,
+            max_generate_count: 0,
         }
     }
 
@@ -167,6 +171,7 @@ impl ItemDef {
             bg_color,
             generates_count: 1,
             consumes_on_generate: false,
+            max_generate_count: 0,
         }
     }
 
@@ -199,6 +204,7 @@ impl ItemDef {
             bg_color,
             generates_count: 1,
             consumes_on_generate: false,
+            max_generate_count: 0,
         }
     }
 }
