@@ -3,7 +3,8 @@ use bevy::prelude::*;
 
 use crate::{
     AutoGenCooldowns, AutoGenCounts, AutoGenTimers, DoubleStaminaButton, DoubleStaminaMode,
-    EggStorage, MessageBar, SECONDS_PER_MINUTE, AUTO_GEN_BATCH_LIMIT, AUTO_GEN_COOLDOWN_SECS,
+    EggStorage, GeneratorUsesRemaining, MessageBar, SECONDS_PER_MINUTE, AUTO_GEN_BATCH_LIMIT,
+    AUTO_GEN_COOLDOWN_SECS,
 };
 use crate::board::{Board, BoardCell, ClickAction};
 use crate::economy::Economy;
@@ -136,6 +137,7 @@ pub(crate) fn handle_cell_interaction(
     mut economy: ResMut<Economy>,
     mut message: ResMut<MessageBar>,
     mut egg_storage: ResMut<EggStorage>,
+    mut gen_uses: ResMut<GeneratorUsesRemaining>,
     cooldowns: Res<AutoGenCooldowns>,
     counts: Res<AutoGenCounts>,
     double_stamina: Res<DoubleStaminaMode>,
@@ -193,6 +195,7 @@ pub(crate) fn handle_cell_interaction(
                     } else if item.is_generator {
                         let count = item.generates_count.max(1);
                         let consumes = item.consumes_on_generate;
+                        let max_uses = item.max_generate_count;
                         // Double-stamina mode: consume 2 stamina instead of 1,
                         // but produce child pieces that are 1 level higher.
                         // (老母鸡 auto-generators are exempt from this mode.)
@@ -227,21 +230,46 @@ pub(crate) fn handle_cell_interaction(
                                     (economy.stamina + stamina_cost).min(economy.max_stamina);
                                 message.set("棋盘已满，无法生成！");
                             } else {
-                                if consumes {
+                                // Determine whether this generator should be consumed.
+                                let should_consume = if max_uses > 0 {
+                                    // Limited-use generator: decrement remaining uses.
+                                    // Uses or_insert to initialise the counter on first activation.
+                                    let entry = gen_uses.0.entry(idx).or_insert(max_uses);
+                                    *entry = entry.saturating_sub(1);
+                                    let left = *entry;
+                                    if left == 0 {
+                                        gen_uses.0.remove(&idx);
+                                        true
+                                    } else {
+                                        false
+                                    }
+                                } else {
+                                    consumes
+                                };
+                                if should_consume {
                                     board.cells[idx].item_id = None;
                                     board.dirty = true;
                                 }
-                                if placed > 1 {
-                                    message.set(format!(
-                                        "生成了 {} 个棋子！剩余体力 {}",
-                                        placed, economy.stamina,
-                                    ));
-                                } else if let Some(gen_item) = last_gen_id.and_then(|id| db.get(id)) {
-                                    message.set(format!(
-                                        "生成了 {} {}！剩余体力 {}",
-                                        gen_item.emoji, gen_item.name, economy.stamina,
-                                    ));
+                                // Build the message based on remaining uses.
+                                let remaining_left = if max_uses > 0 {
+                                    gen_uses.0.get(&idx).copied()
                                 } else {
+                                    None
+                                };
+                                if let Some(gen_item) = last_gen_id.and_then(|id| db.get(id)) {
+                                    if let Some(left) = remaining_left {
+                                        message.set(format!(
+                                            "生成了 {} {}！剩余 {} 次，体力 {}",
+                                            gen_item.emoji, gen_item.name, left, economy.stamina,
+                                        ));
+                                    } else {
+                                        message.set(format!(
+                                            "生成了 {} {}！剩余体力 {}",
+                                            gen_item.emoji, gen_item.name, economy.stamina,
+                                        ));
+                                    }
+                                } else {
+                                    // Fallback for generators without a named item (or batch).
                                     message.set(format!(
                                         "生成了 {} 个棋子！剩余体力 {}",
                                         placed, economy.stamina,
@@ -280,13 +308,17 @@ pub(crate) fn handle_cell_interaction(
                                 )
                             }
                         } else if item.is_generator {
-                            let count = item.generates_count.max(1);
                             let stamina_cost = if double_stamina.active { 2 } else { 1 };
                             if economy.stamina >= stamina_cost {
-                                if count > 1 {
+                                if item.max_generate_count > 0 {
+                                    let remaining = gen_uses
+                                        .0
+                                        .get(&idx)
+                                        .copied()
+                                        .unwrap_or(item.max_generate_count);
                                     format!(
-                                        "— 再次点击生成最多 {} 个棋子（耗{}体力，剩余体力：{}）",
-                                        count, stamina_cost, economy.stamina
+                                        "— 再次点击生成（剩余 {} 次，耗{}体力，剩余体力：{}）",
+                                        remaining, stamina_cost, economy.stamina
                                     )
                                 } else {
                                     format!(
