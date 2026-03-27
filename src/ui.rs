@@ -104,17 +104,6 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
         BorderColor::all(Color::srgb(0.35, 0.28, 0.18)),
     ))
     .with_children(|bar| {
-        // Left: Game title
-        bar.spawn((
-            Text::new("二合"),
-            TextFont {
-                font: font.clone(),
-                font_size: 24.0,
-                ..default()
-            },
-            TextColor(ACCENT),
-        ));
-
         // Center: Stats row
         bar.spawn(Node {
             flex_direction: FlexDirection::Row,
@@ -124,7 +113,7 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
         })
         .with_children(|stats| {
             spawn_stat_card(stats, "等级", LevelLabel, "1", TEXT_MAIN, font);
-            spawn_stat_card(stats, "⚡体力", StaminaLabel, "100/100", ACCENT_GREEN, font);
+            spawn_stat_card(stats, "体力", StaminaLabel, "100/100", ACCENT_GREEN, font);
             spawn_stat_card(
                 stats,
                 "铜板",
