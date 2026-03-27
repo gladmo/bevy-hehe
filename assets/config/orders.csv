@@ -1,4 +1,6 @@
 items,coin_reward
+string,int
+所需物品(分号分隔),金币奖励
 egg_2,20
 egg_3,40
 egg_5,100
