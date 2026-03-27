@@ -21,7 +21,7 @@ use economy::Economy;
 use items::ItemDatabase;
 use orders::Orders;
 use systems::{
-    animate_attract_icons, animate_rising_stars, handle_cell_interaction,
+    animate_attract_icons, animate_rising_stars, handle_button_click, handle_cell_interaction,
     handle_double_stamina_toggle, handle_drag_input, handle_order_submit, tick_attract_animation,
     tick_auto_generators, tick_economy, tick_idle_timer, tick_orders, tick_star_spawners,
     update_cell_visuals, update_double_stamina_button, update_drag_ghost, update_economy_ui,
@@ -31,6 +31,43 @@ use ui::{preload_images, setup_initial_board, setup_ui};
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
 
+/// Holds pre-loaded [`Handle<AudioSource>`] values for every SFX entry in `audio.csv`.
+///
+/// Populated at startup by [`setup_audio`]; systems that want to play a sound
+/// look up the code (e.g. `"button_click"`) and spawn an [`AudioPlayer`] entity
+/// with [`PlaybackSettings::DESPAWN`].
+#[derive(Resource, Default)]
+pub(crate) struct GameAudio {
+    pub(crate) sounds: std::collections::HashMap<String, Handle<AudioSource>>,
+}
+
+impl GameAudio {
+    /// Return the handle for the given audio code, if it was loaded.
+    pub(crate) fn get(&self, code: &str) -> Option<Handle<AudioSource>> {
+        self.sounds.get(code).cloned()
+    }
+
+    /// Return the merge sound for a piece that produces a result at `result_level`.
+    ///
+    /// Tries `merge_lv{result_level}` first; falls back to `merge_lv9`.
+    pub(crate) fn merge_sfx(&self, result_level: u32) -> Option<Handle<AudioSource>> {
+        let code = format!("merge_lv{result_level}");
+        self.get(&code).or_else(|| self.get("merge_lv9"))
+    }
+}
+
+/// Startup system: pre-load every audio asset listed in `audio.csv` (except the
+/// BGM which is handled by [`setup_bgm`]).  Handles are stored in [`GameAudio`]
+/// so that SFX systems can look them up by code without touching the asset server.
+fn setup_audio(
+    asset_server: Res<AssetServer>,
+    mut game_audio: ResMut<GameAudio>,
+) {
+    for def in config::load_audio() {
+        let handle: Handle<AudioSource> = asset_server.load(def.audio_path.clone());
+        game_audio.sounds.insert(def.audio_code, handle);
+    }
+}
 
 /// Marker component for the background-music entity so we can query it later.
 #[derive(Component)]
@@ -391,10 +428,12 @@ fn main() {
     .insert_resource(AttractAnimState::default())
     .insert_resource(DoubleStaminaMode::default())
     .init_resource::<PreloadedImages>()
+    .init_resource::<GameAudio>()
     .add_systems(Startup, preload_images)
     .add_systems(Startup, setup_initial_board)
     .add_systems(Startup, setup_ui.after(setup_initial_board))
-    .add_systems(Startup, setup_bgm);
+    .add_systems(Startup, setup_bgm)
+    .add_systems(Startup, setup_audio);
     // On WASM, resume the paused BGM on the first user interaction to work
     // around browsers' autoplay policy.
     #[cfg(target_arch = "wasm32")]
@@ -416,6 +455,7 @@ fn main() {
                 handle_cell_interaction,
                 handle_order_submit,
                 handle_double_stamina_toggle,
+                handle_button_click,
             )
                 .in_set(GameSet::Logic),
         )
