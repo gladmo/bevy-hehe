@@ -7,6 +7,7 @@
 //! Fulfill orders by submitting the required items to earn coins.
 
 mod board;
+mod config;
 mod economy;
 mod items;
 mod orders;
@@ -201,7 +202,7 @@ pub(crate) struct DragState {
     /// Whether the cursor has moved far enough to be considered a real drag.
     pub(crate) dragging: bool,
     /// Asset path of the icon shown in the drag ghost.
-    pub(crate) icon_path: Option<&'static str>,
+    pub(crate) icon_path: Option<String>,
     /// Touch ID being tracked; also used to suppress mouse events while a touch
     /// gesture is active (None when driven by mouse).
     pub(crate) touch_id: Option<u64>,

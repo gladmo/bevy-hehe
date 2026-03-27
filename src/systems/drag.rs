@@ -94,7 +94,7 @@ pub(crate) fn handle_drag_input(
                         drag.press_pos = cursor_phys;
                         drag.cursor_phys = cursor_phys;
                         drag.cursor_logical = cursor_logical;
-                        drag.icon_path = def.icon_path;
+                        drag.icon_path = def.icon_path.clone();
                     }
                 }
                 break;
@@ -169,7 +169,7 @@ pub(crate) fn handle_drag_input(
                         drag.press_pos = cursor_phys;
                         drag.cursor_phys = cursor_phys;
                         drag.cursor_logical = cursor_logical;
-                        drag.icon_path = def.icon_path;
+                        drag.icon_path = def.icon_path.clone();
                     }
                 }
                 break;
@@ -231,8 +231,8 @@ pub(crate) fn update_drag_ghost(
         // Centre the ghost on the cursor (ghost is 56×56 logical pixels)
         node.left = Val::Px(drag.cursor_logical.x - 28.0);
         node.top = Val::Px(drag.cursor_logical.y - 28.0);
-        if let Some(path) = drag.icon_path {
-            img.image = asset_server.load(path);
+        if let Some(ref path) = drag.icon_path {
+            img.image = asset_server.load(path.clone());
         }
     } else {
         node.display = Display::None;

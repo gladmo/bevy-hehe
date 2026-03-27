@@ -46,41 +46,35 @@ pub enum ChainType {
 #[derive(Debug, Clone)]
 pub struct GenerationOption {
     /// Item ID to produce.
-    pub item_id: &'static str,
+    pub item_id: String,
     /// Probability weight for this option (absolute, not level-scaled).
     pub weight: u32,
-}
-
-impl GenerationOption {
-    pub const fn new(item_id: &'static str, weight: u32) -> Self {
-        Self { item_id, weight }
-    }
 }
 
 /// Definition of a single item in the game.
 #[derive(Debug, Clone)]
 pub struct ItemDef {
-    pub id: &'static str,
+    pub id: String,
     /// The production/merge family this item belongs to.
     /// Used in merge validation (see [`ItemDatabase::can_merge`]) and for future filtering.
     pub chain: ChainType,
     pub level: u32,
-    pub name: &'static str,
-    pub emoji: &'static str,
+    pub name: String,
+    pub emoji: String,
     /// Asset path for the item icon image (e.g. "images/items/item_icon.png")
-    pub icon_path: Option<&'static str>,
+    pub icon_path: Option<String>,
     /// If true, clicking this item generates a child item (costs 1 stamina)
     pub is_generator: bool,
     /// If true, item generates children automatically over time (no stamina cost)
     pub is_auto_generator: bool,
     /// Weighted list of items this generator can produce (used for random selection).
-    pub generates: &'static [GenerationOption],
+    pub generates: Vec<GenerationOption>,
     /// Primary generated item ID (used for display and as fallback when `generates` is empty).
-    pub generates_id: Option<&'static str>,
+    pub generates_id: Option<String>,
     /// Auto-generation interval in seconds (only for auto-generators)
     pub auto_gen_interval_secs: f32,
     /// ID of the item produced when two of this item are merged
-    pub merge_result_id: Option<&'static str>,
+    pub merge_result_id: Option<String>,
     /// Background color (r, g, b) for display
     pub bg_color: (f32, f32, f32),
     /// Number of items to generate per activation (default 1).
@@ -97,114 +91,19 @@ impl ItemDef {
     ///
     /// Uses `self.generates` options weighted by their `weight` field.
     /// Falls back to `self.generates_id` if the table is empty or all weights are zero.
-    pub fn pick_generated_item<R: Rng>(&self, rng: &mut R) -> Option<&'static str> {
+    pub fn pick_generated_item<R: Rng>(&self, rng: &mut R) -> Option<String> {
         let total: u32 = self.generates.iter().map(|o| o.weight).sum();
         if total == 0 {
-            return self.generates_id;
+            return self.generates_id.clone();
         }
         let pick = rng.gen_range(0..total);
         let mut acc = 0u32;
-        for opt in self.generates {
+        for opt in &self.generates {
             acc += opt.weight;
             if pick < acc {
-                return Some(opt.item_id);
+                return Some(opt.item_id.clone());
             }
         }
-        self.generates_id
-    }
-
-    pub(crate) fn child(
-        id: &'static str,
-        chain: ChainType,
-        level: u32,
-        name: &'static str,
-        emoji: &'static str,
-        merge_result_id: Option<&'static str>,
-        bg_color: (f32, f32, f32),
-        icon_path: Option<&'static str>,
-    ) -> Self {
-        Self {
-            id,
-            chain,
-            level,
-            name,
-            emoji,
-            icon_path,
-            is_generator: false,
-            is_auto_generator: false,
-            generates: &[],
-            generates_id: None,
-            auto_gen_interval_secs: 0.0,
-            merge_result_id,
-            bg_color,
-            generates_count: 1,
-            consumes_on_generate: false,
-            max_generate_count: 0,
-        }
-    }
-
-    pub(crate) fn generator(
-        id: &'static str,
-        chain: ChainType,
-        level: u32,
-        name: &'static str,
-        emoji: &'static str,
-        generates: &'static [GenerationOption],
-        generates_id: &'static str,
-        merge_result_id: Option<&'static str>,
-        bg_color: (f32, f32, f32),
-        icon_path: Option<&'static str>,
-    ) -> Self {
-        Self {
-            id,
-            chain,
-            level,
-            name,
-            emoji,
-            icon_path,
-            is_generator: true,
-            is_auto_generator: false,
-            generates,
-            generates_id: Some(generates_id),
-            auto_gen_interval_secs: 0.0,
-            merge_result_id,
-            bg_color,
-            generates_count: 1,
-            consumes_on_generate: false,
-            max_generate_count: 0,
-        }
-    }
-
-    pub(crate) fn auto_generator(
-        id: &'static str,
-        chain: ChainType,
-        level: u32,
-        name: &'static str,
-        emoji: &'static str,
-        generates: &'static [GenerationOption],
-        generates_id: &'static str,
-        interval_secs: f32,
-        merge_result_id: Option<&'static str>,
-        bg_color: (f32, f32, f32),
-        icon_path: Option<&'static str>,
-    ) -> Self {
-        Self {
-            id,
-            chain,
-            level,
-            name,
-            emoji,
-            icon_path,
-            is_generator: false,
-            is_auto_generator: true,
-            generates,
-            generates_id: Some(generates_id),
-            auto_gen_interval_secs: interval_secs,
-            merge_result_id,
-            bg_color,
-            generates_count: 1,
-            consumes_on_generate: false,
-            max_generate_count: 0,
-        }
+        self.generates_id.clone()
     }
 }
