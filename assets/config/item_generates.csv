@@ -1,4 +1,6 @@
 item_id,generates_item_id,weight
+string,string,int
+物品ID,生成物品ID,权重
 poultry_6,egg_1,95
 poultry_6,egg_2,5
 poultry_7,egg_1,85

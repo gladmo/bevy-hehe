@@ -77,8 +77,8 @@ pub fn load_items() -> Vec<ItemDef> {
     let mut gen_map: HashMap<String, Vec<GenerationOption>> = HashMap::new();
 
     for (line_no, line) in ITEM_GENERATES_CSV.lines().enumerate() {
-        if line_no == 0 || line.trim().is_empty() {
-            continue; // skip header and blank lines
+        if line_no < 3 || line.trim().is_empty() {
+            continue; // skip 3-row header and blank lines
         }
         let cols: Vec<&str> = line.splitn(3, ',').collect();
         if cols.len() < 3 {
@@ -102,8 +102,8 @@ pub fn load_items() -> Vec<ItemDef> {
     let mut items = Vec::new();
 
     for (line_no, line) in ITEMS_CSV.lines().enumerate() {
-        if line_no == 0 || line.trim().is_empty() {
-            continue; // skip header and blank lines
+        if line_no < 3 || line.trim().is_empty() {
+            continue; // skip 3-row header and blank lines
         }
         let cols: Vec<&str> = line.splitn(ITEMS_CSV_COLUMNS, ',').collect();
         if cols.len() < ITEMS_CSV_COLUMNS {
@@ -161,26 +161,30 @@ pub fn load_items() -> Vec<ItemDef> {
 
 /// Load the initial board layout from the embedded `board_init.csv`.
 ///
-/// # CSV columns
-/// `col, row, item_id`
+/// # CSV format
+/// The file uses a grid layout where each data row (after a 3-row header)
+/// corresponds to a board row, and each comma-separated column corresponds
+/// to a board column. Empty cells are represented by empty strings.
+///
+/// Header rows (first 3 lines):
+/// - Row 1: column names (`col_0` … `col_6`)
+/// - Row 2: field types
+/// - Row 3: Chinese descriptions
 ///
 /// Returns a `Vec<(col, row, item_id)>`.
 pub fn load_board_init() -> Vec<(usize, usize, String)> {
     let mut entries = Vec::new();
 
     for (line_no, line) in BOARD_INIT_CSV.lines().enumerate() {
-        if line_no == 0 || line.trim().is_empty() {
-            continue;
+        if line_no < 3 || line.trim().is_empty() {
+            continue; // skip 3-row header and blank lines
         }
-        let cols: Vec<&str> = line.splitn(3, ',').collect();
-        if cols.len() < 3 {
-            continue;
-        }
-        let col: usize = cols[0].trim().parse().unwrap_or(0);
-        let row: usize = cols[1].trim().parse().unwrap_or(0);
-        let item_id    = cols[2].trim().to_string();
-        if !item_id.is_empty() {
-            entries.push((col, row, item_id));
+        let board_row = line_no - 3;
+        for (board_col, cell) in line.split(',').enumerate() {
+            let item_id = cell.trim().to_string();
+            if !item_id.is_empty() {
+                entries.push((board_col, board_row, item_id));
+            }
         }
     }
 
@@ -200,8 +204,8 @@ pub fn load_orders() -> Vec<(Vec<String>, u64)> {
     let mut templates = Vec::new();
 
     for (line_no, line) in ORDERS_CSV.lines().enumerate() {
-        if line_no == 0 || line.trim().is_empty() {
-            continue;
+        if line_no < 3 || line.trim().is_empty() {
+            continue; // skip 3-row header and blank lines
         }
         // Split only on the last comma to support multi-item fields with semicolons.
         let split_pos = match line.rfind(',') {
