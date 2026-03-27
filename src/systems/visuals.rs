@@ -6,7 +6,8 @@ use crate::{
     MessageBar, MessageLabel, SubmitBtn, ACCENT, CELL_EMPTY, CELL_EMPTY_ALT, CELL_HOVERED,
     CELL_SELECTED, DragState, EggStorage, SECONDS_PER_MINUTE,
 };
-use crate::board::{Board, BoardCell, CellImage, BOARD_COLS};
+use crate::board::{Board, BoardCell, CellCrownIcon, CellEnergyIcon, CellImage, CellSelectedOverlay, BOARD_COLS};
+use crate::items::types::ChainType;
 use crate::economy::{CoinsLabel, Economy, GemsLabel, LevelLabel, StaminaLabel};
 use crate::items::ItemDatabase;
 use crate::orders::{OrderItemIcon, OrderSubmitButton, Orders};
@@ -32,6 +33,13 @@ pub(crate) fn update_cell_visuals(
         &mut BorderColor,
     )>,
     mut image_query: Query<(&CellImage, &mut Node, &mut ImageNode)>,
+    // The Without<> filters on the three overlay queries below make them disjoint
+    // from one another (each entity has exactly one overlay marker component), which
+    // is required by Bevy ECS when multiple queries mutably borrow the same component
+    // (Node) from different system parameters in the same system.
+    mut crown_query: Query<(&CellCrownIcon, &mut Node), (Without<CellImage>, Without<CellEnergyIcon>, Without<CellSelectedOverlay>)>,
+    mut energy_query: Query<(&CellEnergyIcon, &mut Node), (Without<CellImage>, Without<CellCrownIcon>, Without<CellSelectedOverlay>)>,
+    mut selected_overlay_query: Query<(&CellSelectedOverlay, &mut Node), (Without<CellImage>, Without<CellCrownIcon>, Without<CellEnergyIcon>)>,
     // Lightweight query: detects whether any cell's hover/press state changed.
     changed_interactions: Query<(), (Changed<Interaction>, With<BoardCell>)>,
 ) {
@@ -92,7 +100,7 @@ pub(crate) fn update_cell_visuals(
         border.set_if_neq(new_border);
     }
 
-    // Icon images only change when items are placed, moved, or merged — not on hover.
+    // Icon images and overlays only change when items are placed, moved, or merged — not on hover.
     if board_changed {
         for (ci, mut node, mut img) in &mut image_query {
             let idx = ci.index;
@@ -119,6 +127,47 @@ pub(crate) fn update_cell_visuals(
                     }
                 }
             }
+        }
+
+        // Crown icon: shown when item is max-level (no merge_result_id).
+        for (ci, mut node) in &mut crown_query {
+            let idx = ci.index;
+            let is_max_level = board.cells[idx]
+                .item_id
+                .as_deref()
+                .and_then(|id| db.get(id))
+                .map(|def| def.merge_result_id.is_none())
+                .unwrap_or(false);
+            let new_display = if is_max_level { Display::Flex } else { Display::None };
+            if node.display != new_display {
+                node.display = new_display;
+            }
+        }
+
+        // Energy icon: shown for Gourd chain items.
+        for (ci, mut node) in &mut energy_query {
+            let idx = ci.index;
+            let is_gourd = board.cells[idx]
+                .item_id
+                .as_deref()
+                .and_then(|id| db.get(id))
+                .map(|def| matches!(def.chain, ChainType::Gourd))
+                .unwrap_or(false);
+            let new_display = if is_gourd { Display::Flex } else { Display::None };
+            if node.display != new_display {
+                node.display = new_display;
+            }
+        }
+    }
+
+    // Selected overlay: shown when the cell is currently selected (changes on interaction too).
+    for (ci, mut node) in &mut selected_overlay_query {
+        let idx = ci.index;
+        let selected = board.selected == Some(idx);
+        let has_item = board.cells[idx].item_id.is_some();
+        let new_display = if selected && has_item { Display::Flex } else { Display::None };
+        if node.display != new_display {
+            node.display = new_display;
         }
     }
 }

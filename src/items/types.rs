@@ -40,6 +40,12 @@ pub enum ChainType {
     RedBox,
     /// 绿色漆盒 reward gift box (produces 老母鸡/妆奁/手作盒)
     GreenBox,
+    /// 金币 tool chain — click to collect coins
+    Gold,
+    /// 葫芦 tool chain — click to collect stamina (can exceed cap)
+    Gourd,
+    /// 红宝石 tool chain — click to collect gems
+    Ruby,
 }
 
 /// One weighted option in a generator's production table.
@@ -86,6 +92,11 @@ pub struct ItemDef {
 }
 
 impl ItemDef {
+    /// Returns true if this item is a clickable tool (Gold/Gourd/Ruby chain).
+    pub fn is_tool(&self) -> bool {
+        matches!(self.chain, ChainType::Gold | ChainType::Gourd | ChainType::Ruby)
+    }
+
     /// Pick a generated item ID using weighted random selection.
     ///
     /// Uses `self.generates` options weighted by their `weight` field.

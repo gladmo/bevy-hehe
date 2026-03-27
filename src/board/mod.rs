@@ -5,7 +5,7 @@ mod actions;
 mod components;
 
 pub use actions::ClickAction;
-pub use components::{BoardCell, BoardGrid, CellImage};
+pub use components::{BoardCell, BoardGrid, CellCrownIcon, CellEnergyIcon, CellImage, CellSelectedOverlay};
 
 use crate::items::ItemDatabase;
 
@@ -153,6 +153,10 @@ impl Board {
                         if item_def.is_generator || item_def.is_auto_generator {
                             // Generator action — keep selected so the next click generates again immediately
                             return ClickAction::GeneratorActivated(clicked_idx, item_id.to_string());
+                        }
+                        if item_def.is_tool() {
+                            // Tool action — consume and give reward
+                            return ClickAction::ToolUsed(clicked_idx, item_id.to_string());
                         }
                     }
                     // Deselect

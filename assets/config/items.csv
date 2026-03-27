@@ -165,3 +165,17 @@ redBox_1,RedBox,1,红色漆盒,images/items/item_icon_30201.png,true,false,teapo
 redBox_2,RedBox,2,红色漆盒,images/items/item_icon_30202.png,true,false,teapot_2,0.0,,0.9,0.2,0.15,1,false,16
 greenBox_1,GreenBox,1,绿色漆盒,images/items/item_icon_30301.png,true,false,poultry_1,0.0,greenBox_2,0.2,0.65,0.3,1,false,8
 greenBox_2,GreenBox,2,绿色漆盒,images/items/item_icon_30302.png,true,false,poultry_2,0.0,,0.2,0.65,0.3,1,false,16
+gold_1,Gold,1,金币,images/items/item_icon_40101.png,false,false,,0.0,gold_2,0.95,0.80,0.25,1,false,0
+gold_2,Gold,2,金币,images/items/item_icon_40102.png,false,false,,0.0,gold_3,0.95,0.80,0.25,1,false,0
+gold_3,Gold,3,金币,images/items/item_icon_40103.png,false,false,,0.0,gold_4,0.95,0.80,0.25,1,false,0
+gold_4,Gold,4,金币,images/items/item_icon_40104.png,false,false,,0.0,gold_5,0.95,0.80,0.25,1,false,0
+gold_5,Gold,5,金币,images/items/item_icon_40105.png,false,false,,0.0,,0.95,0.80,0.25,1,false,0
+gourd_1,Gourd,1,葫芦,images/items/item_icon_40201.png,false,false,,0.0,gourd_2,0.55,0.80,0.40,1,false,0
+gourd_2,Gourd,2,葫芦,images/items/item_icon_40202.png,false,false,,0.0,gourd_3,0.55,0.80,0.40,1,false,0
+gourd_3,Gourd,3,葫芦,images/items/item_icon_40203.png,false,false,,0.0,gourd_4,0.55,0.80,0.40,1,false,0
+gourd_4,Gourd,4,葫芦,images/items/item_icon_40204.png,false,false,,0.0,gourd_5,0.55,0.80,0.40,1,false,0
+gourd_5,Gourd,5,葫芦,images/items/item_icon_40205.png,false,false,,0.0,,0.55,0.80,0.40,1,false,0
+ruby_1,Ruby,1,红宝石,images/items/item_icon_40301.png,false,false,,0.0,ruby_2,0.85,0.25,0.35,1,false,0
+ruby_2,Ruby,2,红宝石,images/items/item_icon_40302.png,false,false,,0.0,ruby_3,0.85,0.25,0.35,1,false,0
+ruby_3,Ruby,3,红宝石,images/items/item_icon_40303.png,false,false,,0.0,ruby_4,0.85,0.25,0.35,1,false,0
+ruby_4,Ruby,4,红宝石,images/items/item_icon_40304.png,false,false,,0.0,,0.85,0.25,0.35,1,false,0
