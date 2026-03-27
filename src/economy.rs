@@ -49,6 +49,11 @@ impl Economy {
         }
     }
 
+    /// Add stamina without enforcing the max cap (used by gourd tools).
+    pub fn add_stamina_uncapped(&mut self, amount: i32) {
+        self.stamina += amount;
+    }
+
     /// Add coins.
     pub fn add_coins(&mut self, amount: u64) {
         self.coins += amount;

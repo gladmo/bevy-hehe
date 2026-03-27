@@ -2,7 +2,7 @@
 //! Contains startup systems and UI spawn helpers.
 use bevy::prelude::*;
 
-use crate::board::{Board, BoardCell, BoardGrid, CellImage, BOARD_COLS, BOARD_ROWS};
+use crate::board::{Board, BoardCell, BoardGrid, CellCrownIcon, CellEnergyIcon, CellImage, CellSelectedOverlay, BOARD_COLS, BOARD_ROWS};
 use crate::config::load_board_init;
 use crate::economy::{CoinsLabel, GemsLabel, LevelLabel, StaminaLabel};
 use crate::items::ItemDatabase;
@@ -32,6 +32,10 @@ pub(crate) fn preload_images(
             preloaded.0.push(asset_server.load(path.clone()));
         }
     }
+    // Pre-load chessboard overlay icons so they are ready immediately.
+    preloaded.0.push(asset_server.load("images/chessboard/chessboard_icon_crown.png"));
+    preloaded.0.push(asset_server.load("images/chessboard/chessboard_icon_energy.png"));
+    preloaded.0.push(asset_server.load("images/chessboard/chessboard_item_selected.png"));
 }
 
 pub(crate) fn setup_initial_board(mut board: ResMut<Board>) {
@@ -63,7 +67,7 @@ pub(crate) fn setup_ui(
         .with_children(|root| {
             spawn_top_bar(root, &font);
             spawn_order_row(root, &font);
-            spawn_board_grid(root);
+            spawn_board_grid(root, &asset_server);
             spawn_bottom_bar(root, &font);
         });
 
@@ -116,7 +120,7 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
             spawn_stat_card(stats, "体力", StaminaLabel, "100/100", ACCENT_GREEN, font);
             spawn_stat_card(
                 stats,
-                "铜板",
+                "金币",
                 CoinsLabel,
                 "0",
                 Color::srgb(0.95, 0.80, 0.25),
@@ -124,7 +128,7 @@ fn spawn_top_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
             );
             spawn_stat_card(
                 stats,
-                "宝石",
+                "红宝石",
                 GemsLabel,
                 "0",
                 Color::srgb(0.55, 0.75, 0.95),
@@ -314,7 +318,7 @@ fn spawn_order_card(panel: &mut ChildSpawnerCommands, slot: usize, font: &Handle
 
 // ── Board grid (full-width, fills remaining space) ────────────────────────────
 
-fn spawn_board_grid(root: &mut ChildSpawnerCommands) {
+fn spawn_board_grid(root: &mut ChildSpawnerCommands, asset_server: &AssetServer) {
     root.spawn((
         Node {
             display: Display::Grid,
@@ -332,7 +336,7 @@ fn spawn_board_grid(root: &mut ChildSpawnerCommands) {
     ))
     .with_children(|grid| {
         for idx in 0..(BOARD_COLS * BOARD_ROWS) {
-            spawn_cell(grid, idx);
+            spawn_cell(grid, idx, asset_server);
         }
     });
 }
@@ -471,7 +475,7 @@ fn spawn_bottom_action_btn(
     });
 }
 
-fn spawn_cell(grid: &mut ChildSpawnerCommands, idx: usize) {
+fn spawn_cell(grid: &mut ChildSpawnerCommands, idx: usize, asset_server: &AssetServer) {
     let col = idx % BOARD_COLS;
     let row = idx / BOARD_COLS;
     let cell_bg = if (col + row) % 2 == 0 {
@@ -479,6 +483,16 @@ fn spawn_cell(grid: &mut ChildSpawnerCommands, idx: usize) {
     } else {
         CELL_EMPTY_ALT
     };
+
+    // Overlay icon size: 1/3 of the 48px cell image per side (16px × 16px = 1/9 of cell area).
+    let overlay_size = 16.0_f32;
+
+    let crown_handle: Handle<Image> =
+        asset_server.load("images/chessboard/chessboard_icon_crown.png");
+    let energy_handle: Handle<Image> =
+        asset_server.load("images/chessboard/chessboard_icon_energy.png");
+    let selected_handle: Handle<Image> =
+        asset_server.load("images/chessboard/chessboard_item_selected.png");
 
     grid.spawn((
         Button,
@@ -488,6 +502,7 @@ fn spawn_cell(grid: &mut ChildSpawnerCommands, idx: usize) {
             flex_direction: FlexDirection::Column,
             border: UiRect::all(px(1.0)),
             border_radius: BorderRadius::all(px(4.0)),
+            position_type: PositionType::Relative,
             ..default()
         },
         BackgroundColor(cell_bg),
@@ -505,6 +520,54 @@ fn spawn_cell(grid: &mut ChildSpawnerCommands, idx: usize) {
             },
             ImageNode::default(),
             CellImage { index: idx },
+        ));
+
+        // Selected-state border overlay (full cell, hidden by default)
+        cell.spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                left: Val::Px(0.0),
+                top: Val::Px(0.0),
+                right: Val::Px(0.0),
+                bottom: Val::Px(0.0),
+                display: Display::None,
+                ..default()
+            },
+            ImageNode::new(selected_handle),
+            Pickable::IGNORE,
+            CellSelectedOverlay { index: idx },
+        ));
+
+        // Crown icon (bottom-right, max-level indicator, hidden by default)
+        cell.spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                right: Val::Px(1.0),
+                bottom: Val::Px(1.0),
+                width: px(overlay_size),
+                height: px(overlay_size),
+                display: Display::None,
+                ..default()
+            },
+            ImageNode::new(crown_handle),
+            Pickable::IGNORE,
+            CellCrownIcon { index: idx },
+        ));
+
+        // Energy icon (top-right, gourd item indicator, hidden by default)
+        cell.spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                right: Val::Px(1.0),
+                top: Val::Px(1.0),
+                width: px(overlay_size),
+                height: px(overlay_size),
+                display: Display::None,
+                ..default()
+            },
+            ImageNode::new(energy_handle),
+            Pickable::IGNORE,
+            CellEnergyIcon { index: idx },
         ));
     });
 }

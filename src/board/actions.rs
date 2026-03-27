@@ -25,4 +25,6 @@ pub enum ClickAction {
         to: usize,
     },
     GeneratorActivated(usize, String),
+    /// A clickable tool item was activated (Gold/Gourd/Ruby chain).
+    ToolUsed(usize, String),
 }

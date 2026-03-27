@@ -8,6 +8,7 @@ use crate::{
 };
 use crate::board::{Board, BoardCell, ClickAction};
 use crate::economy::Economy;
+use crate::items::types::ChainType;
 use crate::items::ItemDatabase;
 use crate::orders::{OrderSubmitButton, Orders};
 
@@ -353,6 +354,34 @@ pub(crate) fn handle_cell_interaction(
                     message.set(format!("移动了 {}", def.name));
                 }
             }
+            ClickAction::ToolUsed(idx, item_id) => {
+                if let Some(item) = db.get(&item_id) {
+                    let level = item.level;
+                    let multiplier = 2.5f32.powi((level as i32) - 1);
+                    match item.chain {
+                        ChainType::Gold => {
+                            let reward = (2.0_f32 * multiplier).ceil() as u64;
+                            economy.add_coins(reward);
+                            message.set(format!("获得 {} 金币！", reward));
+                        }
+                        ChainType::Gourd => {
+                            let reward = (2.55_f32 * multiplier).ceil() as i32;
+                            economy.add_stamina_uncapped(reward);
+                            message.set(format!("获得 {} 体力！", reward));
+                        }
+                        ChainType::Ruby => {
+                            let reward = (1.7_f32 * multiplier).ceil() as u32;
+                            economy.add_gems(reward);
+                            message.set(format!("获得 {} 红宝石！", reward));
+                        }
+                        _ => {}
+                    }
+                    // Consume the tool item
+                    board.cells[idx].item_id = None;
+                    board.dirty = true;
+                    board.selected = None;
+                }
+            }
             ClickAction::Deselected => {
                 message.set("取消选中");
             }
@@ -394,7 +423,7 @@ pub(crate) fn handle_order_submit(
                 economy.add_coins(reward);
                 economy.add_exp(50);
                 orders.fill_orders(&db);
-                message.set(format!("订单完成！获得 {} 铜板", reward));
+                message.set(format!("订单完成！获得 {} 金币", reward));
                 // Play the order-complete sound on successful fulfillment.
                 if let Some(sfx) = game_audio.get("order_complete") {
                     commands.spawn((AudioPlayer::new(sfx), PlaybackSettings::DESPAWN));

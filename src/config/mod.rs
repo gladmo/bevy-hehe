@@ -56,6 +56,9 @@ fn parse_chain(s: &str) -> ChainType {
         "Pouch"      => ChainType::Pouch,
         "RedBox"     => ChainType::RedBox,
         "GreenBox"   => ChainType::GreenBox,
+        "Gold"       => ChainType::Gold,
+        "Gourd"      => ChainType::Gourd,
+        "Ruby"       => ChainType::Ruby,
         other => panic!("Unknown chain type '{other}' in items.csv (check your chain name spelling)"),
     }
 }
