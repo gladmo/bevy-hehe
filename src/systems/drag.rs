@@ -1,7 +1,7 @@
 //! Drag-and-drop input handling systems.
 use bevy::prelude::*;
 
-use crate::{DragGhost, DragState, DRAG_THRESHOLD_PIXELS, MessageBar};
+use crate::{DragGhost, DragState, GameAudio, DRAG_THRESHOLD_PIXELS, MessageBar};
 use crate::board::{Board, BoardCell, ClickAction};
 use crate::economy::Economy;
 use crate::items::ItemDatabase;
@@ -17,10 +17,12 @@ fn ui_hit_test(cursor: Vec2, transform: &UiGlobalTransform, computed: &ComputedN
 fn finish_drag(
     src: usize,
     release_phys: Vec2,
+    commands: &mut Commands,
     board: &mut Board,
     db: &ItemDatabase,
     economy: &mut Economy,
     message: &mut MessageBar,
+    game_audio: &GameAudio,
     cell_query: &Query<(&BoardCell, &UiGlobalTransform, &ComputedNode)>,
 ) {
     let mut target_idx: Option<usize> = None;
@@ -42,6 +44,10 @@ fn finish_drag(
                             item.name, item.level, hint
                         ));
                         economy.add_exp(10 * item.level as u64);
+                        // Play merge SFX: merge_lv{result_level}, fallback to merge_lv9.
+                        if let Some(sfx) = game_audio.merge_sfx(item.level) {
+                            commands.spawn((AudioPlayer::new(sfx), PlaybackSettings::DESPAWN));
+                        }
                     }
                 }
                 ClickAction::Moved { item, .. } => {
@@ -61,6 +67,7 @@ fn finish_drag(
 /// Handles the full lifecycle of a drag gesture (mouse **and** touch):
 /// press → movement threshold → ghost appears → release → move or merge.
 pub(crate) fn handle_drag_input(
+    mut commands: Commands,
     mut drag: ResMut<DragState>,
     mouse: Res<ButtonInput<MouseButton>>,
     touches: Res<Touches>,
@@ -69,6 +76,7 @@ pub(crate) fn handle_drag_input(
     db: Res<ItemDatabase>,
     mut economy: ResMut<Economy>,
     mut message: ResMut<MessageBar>,
+    game_audio: Res<GameAudio>,
     cell_query: Query<(&BoardCell, &UiGlobalTransform, &ComputedNode)>,
 ) {
     let Ok(window) = windows.single() else {
@@ -130,10 +138,12 @@ pub(crate) fn handle_drag_input(
                 finish_drag(
                     src,
                     cursor_phys,
+                    &mut commands,
                     &mut board,
                     &db,
                     &mut economy,
                     &mut message,
+                    &game_audio,
                     &cell_query,
                 );
             }
@@ -193,10 +203,12 @@ pub(crate) fn handle_drag_input(
                 finish_drag(
                     src,
                     cursor_phys,
+                    &mut commands,
                     &mut board,
                     &db,
                     &mut economy,
                     &mut message,
+                    &game_audio,
                     &cell_query,
                 );
             }
