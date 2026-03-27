@@ -31,7 +31,6 @@ use ui::{preload_images, setup_initial_board, setup_ui};
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
 
-const BGM_PATH: &str = "audio/bgm_SpringFestival_V1.wav";
 
 /// Marker component for the background-music entity so we can query it later.
 #[derive(Component)]
@@ -43,9 +42,15 @@ struct BgmSink;
 /// page, so the sink is started in a paused state and resumed by
 /// [`unlock_bgm_on_interaction`] on the first input event.
 fn setup_bgm(asset_server: Res<AssetServer>, mut commands: Commands) {
+    let bgm_path = config::load_audio()
+        .into_iter()
+        .find(|a| a.audio_code == "bgm_main")
+        .map(|a| a.audio_path)
+        .unwrap_or_else(|| "audio/bgm_SpringFestival_V1.wav".to_string());
+
     commands.spawn((
         BgmSink,
-        AudioPlayer::new(asset_server.load(BGM_PATH)),
+        AudioPlayer::new(asset_server.load(bgm_path)),
         #[cfg(not(target_arch = "wasm32"))]
         PlaybackSettings::LOOP,
         #[cfg(target_arch = "wasm32")]

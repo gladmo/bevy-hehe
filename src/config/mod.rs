@@ -8,6 +8,7 @@
 //! - `item_generates.csv` — weighted generation options per generator item
 //! - `board_init.csv`     — initial board layout
 //! - `orders.csv`         — order templates
+//! - `audio.csv`          — audio effect definitions
 
 use crate::items::types::{ChainType, GenerationOption, ItemDef};
 
@@ -16,6 +17,7 @@ const ITEMS_CSV: &str = include_str!("../../assets/config/items.csv");
 const ITEM_GENERATES_CSV: &str = include_str!("../../assets/config/item_generates.csv");
 const BOARD_INIT_CSV: &str = include_str!("../../assets/config/board_init.csv");
 const ORDERS_CSV: &str = include_str!("../../assets/config/orders.csv");
+const AUDIO_CSV: &str = include_str!("../../assets/config/audio.csv");
 
 /// Expected number of columns in `items.csv`.
 const ITEMS_CSV_COLUMNS: usize = 17;
@@ -228,4 +230,51 @@ pub fn load_orders() -> Vec<(Vec<String>, u64)> {
     }
 
     templates
+}
+
+// ── Audio ─────────────────────────────────────────────────────────────────────
+
+/// A single audio effect definition loaded from `audio.csv`.
+#[allow(dead_code)]
+pub struct AudioDef {
+    /// Unique code used to look up this audio entry (e.g. `"bgm_main"`).
+    pub audio_code: String,
+    /// Asset path relative to the `assets/` directory (e.g. `"audio/bgm_SpringFestival_V1.wav"`).
+    pub audio_path: String,
+    /// Human-readable description of the audio clip.
+    pub description: String,
+}
+
+/// Load all audio definitions from the embedded `audio.csv`.
+///
+/// # CSV columns
+/// `audio_code, audio_path, description`
+///
+/// Returns a `Vec<AudioDef>` in file order.
+pub fn load_audio() -> Vec<AudioDef> {
+    let mut entries = Vec::new();
+
+    for (line_no, line) in AUDIO_CSV.lines().enumerate() {
+        if line_no < 3 || line.trim().is_empty() {
+            continue; // skip 3-row header and blank lines
+        }
+        // splitn(3, ',') means the third element captures the rest of the
+        // line, so description values containing commas are handled correctly.
+        let cols: Vec<&str> = line.splitn(3, ',').collect();
+        if cols.len() < 3 {
+            bevy::log::warn!(
+                "audio.csv line {}: expected 3 columns, got {}; skipping",
+                line_no + 1,
+                cols.len()
+            );
+            continue;
+        }
+        entries.push(AudioDef {
+            audio_code:  cols[0].trim().to_string(),
+            audio_path:  cols[1].trim().to_string(),
+            description: cols[2].trim().to_string(),
+        });
+    }
+
+    entries
 }

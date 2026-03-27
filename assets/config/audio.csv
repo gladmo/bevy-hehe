@@ -1,0 +1,4 @@
+audio_code,audio_path,description
+string,string,string
+音效代码,音效路径,描述
+bgm_main,audio/bgm_SpringFestival_V1.wav,春节背景音乐
