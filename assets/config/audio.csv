@@ -1,7 +1,7 @@
 audio_code,audio_path,description
 string,string,string
 音效代码,音效路径,描述
-bgm_main,audio/bgm_SpringFestival_V1.wav,春节背景音乐
+bgm_main,audio/bgm_SpringFestival_V1.ogg,春节背景音乐
 button_click,audio/SfxButtonClick.wav,按钮点击
 merge_collect_coins,audio/SfxMergeCollectCoins.wav,收获金币
 merge_collect_diamond,audio/SfxMergeCollectDiamond.wav,收获钻石
