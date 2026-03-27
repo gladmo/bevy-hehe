@@ -18,7 +18,7 @@ impl ItemDatabase {
     pub fn new() -> Self {
         let mut items = HashMap::new();
         for item in all_items() {
-            items.insert(item.id.to_string(), item);
+            items.insert(item.id.clone(), item);
         }
         Self { items }
     }

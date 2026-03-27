@@ -166,9 +166,8 @@ impl Board {
                         if db.can_merge(sel_id, click_id) {
                             let result_id = db
                                 .get(sel_id)
-                                .and_then(|i| i.merge_result_id)
-                                .unwrap()
-                                .to_string();
+                                .and_then(|i| i.merge_result_id.clone())
+                                .unwrap();
                             // Remove both items and place merged result at clicked cell
                             self.cells[selected_idx].item_id = None;
                             self.cells[clicked_idx].item_id = Some(result_id.clone());
@@ -222,8 +221,8 @@ impl Board {
         if let (Some(from_id), Some(to_id)) = (&from_item, &to_item) {
             if db.can_merge(from_id, to_id) {
                 // `can_merge` guarantees `merge_result_id` is Some; guard defensively.
-                let result_id = match db.get(from_id).and_then(|i| i.merge_result_id) {
-                    Some(id) => id.to_string(),
+                let result_id = match db.get(from_id).and_then(|i| i.merge_result_id.clone()) {
+                    Some(id) => id,
                     None => return ClickAction::None,
                 };
                 self.cells[from].item_id = None;

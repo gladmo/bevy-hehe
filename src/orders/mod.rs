@@ -3,11 +3,12 @@ mod components;
 mod types;
 
 pub use components::{OrderItemIcon, OrderPanel, OrderSubmitButton};
-pub use types::{Order, MAX_ORDERS, ORDER_TEMPLATES};
+pub use types::{Order, MAX_ORDERS};
 
 use bevy::prelude::*;
 use rand::Rng;
 
+use crate::config::load_orders;
 use crate::items::ItemDatabase;
 
 /// Order panel resource.
@@ -15,6 +16,8 @@ use crate::items::ItemDatabase;
 pub struct Orders {
     pub orders: Vec<Order>,
     pub next_id: u32,
+    /// Order templates loaded once from `orders.csv` at construction time.
+    templates: Vec<(Vec<String>, u64)>,
 }
 
 impl Default for Orders {
@@ -22,6 +25,7 @@ impl Default for Orders {
         Self {
             orders: Vec::new(),
             next_id: 1,
+            templates: load_orders(),
         }
     }
 }
@@ -29,16 +33,19 @@ impl Default for Orders {
 impl Orders {
     /// Generate a new random order using the item database.
     pub fn generate_order(&mut self, db: &ItemDatabase) -> Option<Order> {
+        if self.templates.is_empty() {
+            return None;
+        }
         let mut rng = rand::thread_rng();
         // Try up to 10 times to pick a valid template
         for _ in 0..10 {
-            let (item_ids, coins) = ORDER_TEMPLATES[rng.gen_range(0..ORDER_TEMPLATES.len())];
+            let (item_ids, coins) = &self.templates[rng.gen_range(0..self.templates.len())];
             // Validate that all items in the template exist in the database
-            if item_ids.iter().all(|&id| db.get(id).is_some()) {
+            if item_ids.iter().all(|id| db.get(id).is_some()) {
                 let order = Order {
                     id: self.next_id,
-                    items: item_ids.iter().map(|&s| s.to_string()).collect(),
-                    coin_reward: coins,
+                    items: item_ids.clone(),
+                    coin_reward: *coins,
                 };
                 self.next_id += 1;
                 return Some(order);

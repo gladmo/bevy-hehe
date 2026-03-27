@@ -64,7 +64,7 @@ pub(crate) fn tick_auto_generators(
             let id = cell.item_id.as_deref()?;
             let def = db.get(id)?;
             if def.is_auto_generator {
-                let gen_id = def.generates_id?.to_string();
+                let gen_id = def.generates_id.clone()?;
                 Some((idx, def.auto_gen_interval_secs, gen_id))
             } else {
                 None
@@ -170,7 +170,7 @@ pub(crate) fn handle_cell_interaction(
                         // Consumes a stored egg from EggStorage when available;
                         // otherwise produces one on the spot so that double-clicking
                         // always works regardless of how long the hen has been running.
-                        if let Some(gen_id) = item.generates_id {
+                        if let Some(ref gen_id) = item.generates_id {
                             if board.place_near(idx, gen_id) {
                                 let pending = egg_storage.0.get(&idx).copied().unwrap_or(0);
                                 if pending > 0 {
@@ -203,19 +203,19 @@ pub(crate) fn handle_cell_interaction(
                         if economy.spend_stamina(stamina_cost) {
                             let mut rng = rand::thread_rng();
                             let mut placed = 0u32;
-                            let mut last_gen_id: Option<&'static str> = None;
+                            let mut last_gen_id: Option<String> = None;
                             for _ in 0..count {
                                 if let Some(gen_id) = item.pick_generated_item(&mut rng) {
                                     // In double-stamina mode, upgrade the generated piece
                                     // by 1 level (use its merge_result_id when available).
                                     let actual_gen_id = if double_stamina.active {
-                                        db.get(gen_id)
-                                            .and_then(|def| def.merge_result_id)
-                                            .unwrap_or(gen_id)
+                                        db.get(&gen_id)
+                                            .and_then(|def| def.merge_result_id.clone())
+                                            .unwrap_or_else(|| gen_id.clone())
                                     } else {
                                         gen_id
                                     };
-                                    if board.place_near(idx, actual_gen_id) {
+                                    if board.place_near(idx, &actual_gen_id) {
                                         placed += 1;
                                         last_gen_id = Some(actual_gen_id);
                                     } else {
@@ -256,7 +256,7 @@ pub(crate) fn handle_cell_interaction(
                                 } else {
                                     None
                                 };
-                                if let Some(gen_item) = last_gen_id.and_then(|id| db.get(id)) {
+                                if let Some(gen_item) = last_gen_id.as_deref().and_then(|id| db.get(id)) {
                                     if let Some(left) = remaining_left {
                                         message.set(format!(
                                             "生成了 {} {}！剩余 {} 次，体力 {}",

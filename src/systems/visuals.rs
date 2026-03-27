@@ -100,7 +100,7 @@ pub(crate) fn update_cell_visuals(
                 .item_id
                 .as_deref()
                 .and_then(|id| db.get(id))
-                .and_then(|def| def.icon_path);
+                .and_then(|def| def.icon_path.clone());
 
             match icon_path {
                 Some(path) => {
@@ -320,8 +320,8 @@ pub(crate) fn update_item_detail_bar(
                     };
                 }
                 if let Ok(mut img) = icon_q.single_mut() {
-                    let new_handle = if let Some(path) = def.icon_path {
-                        asset_server.load(path)
+                    let new_handle = if let Some(ref path) = def.icon_path {
+                        asset_server.load(path.clone())
                     } else {
                         Handle::default()
                     };
@@ -388,7 +388,7 @@ pub(crate) fn update_order_icons(
         if let Some(item_id) = current_item_id {
             let new_handle = db
                 .get(item_id)
-                .and_then(|def| def.icon_path)
+                .and_then(|def| def.icon_path.clone())
                 .map(|path| asset_server.load(path))
                 .unwrap_or_default();
             img.image = new_handle;
