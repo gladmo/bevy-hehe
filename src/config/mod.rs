@@ -20,7 +20,7 @@ const ORDERS_CSV: &str = include_str!("../../assets/config/orders.csv");
 const AUDIO_CSV: &str = include_str!("../../assets/config/audio.csv");
 
 /// Expected number of columns in `items.csv`.
-const ITEMS_CSV_COLUMNS: usize = 17;
+const ITEMS_CSV_COLUMNS: usize = 16;
 
 // ── CSV helpers ───────────────────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ fn parse_chain(s: &str) -> ChainType {
 /// `item_generates.csv` configuration files.
 ///
 /// # CSV columns — items.csv
-/// `id, chain, level, name, emoji, icon_path, is_generator, is_auto_generator,
+/// `id, chain, level, name, icon_path, is_generator, is_auto_generator,
 /// generates_id, auto_gen_interval_secs, merge_result_id, bg_r, bg_g, bg_b,
 /// generates_count, consumes_on_generate, max_generate_count`
 ///
@@ -122,19 +122,18 @@ pub fn load_items() -> Vec<ItemDef> {
         let chain            = parse_chain(cols[1]);
         let level: u32       = cols[2].trim().parse().unwrap_or(1);
         let name             = cols[3].trim().to_string();
-        let emoji            = cols[4].trim().to_string();
-        let icon_path        = parse_opt_str(cols[5]);
-        let is_generator     = parse_bool(cols[6]);
-        let is_auto_generator = parse_bool(cols[7]);
-        let generates_id     = parse_opt_str(cols[8]);
-        let auto_gen_interval_secs: f32 = cols[9].trim().parse().unwrap_or(0.0);
-        let merge_result_id  = parse_opt_str(cols[10]);
-        let bg_r: f32        = cols[11].trim().parse().unwrap_or(0.5);
-        let bg_g: f32        = cols[12].trim().parse().unwrap_or(0.5);
-        let bg_b: f32        = cols[13].trim().parse().unwrap_or(0.5);
-        let generates_count: u32 = cols[14].trim().parse().unwrap_or(1);
-        let consumes_on_generate = parse_bool(cols[15]);
-        let max_generate_count: u32 = cols[16].trim().parse().unwrap_or(0);
+        let icon_path        = parse_opt_str(cols[4]);
+        let is_generator     = parse_bool(cols[5]);
+        let is_auto_generator = parse_bool(cols[6]);
+        let generates_id     = parse_opt_str(cols[7]);
+        let auto_gen_interval_secs: f32 = cols[8].trim().parse().unwrap_or(0.0);
+        let merge_result_id  = parse_opt_str(cols[9]);
+        let bg_r: f32        = cols[10].trim().parse().unwrap_or(0.5);
+        let bg_g: f32        = cols[11].trim().parse().unwrap_or(0.5);
+        let bg_b: f32        = cols[12].trim().parse().unwrap_or(0.5);
+        let generates_count: u32 = cols[13].trim().parse().unwrap_or(1);
+        let consumes_on_generate = parse_bool(cols[14]);
+        let max_generate_count: u32 = cols[15].trim().parse().unwrap_or(0);
 
         let generates = gen_map.remove(&id).unwrap_or_default();
 
@@ -143,7 +142,6 @@ pub fn load_items() -> Vec<ItemDef> {
             chain,
             level,
             name,
-            emoji,
             icon_path,
             is_generator,
             is_auto_generator,

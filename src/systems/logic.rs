@@ -157,8 +157,8 @@ pub(crate) fn handle_cell_interaction(
                         ""
                     };
                     message.set(format!(
-                        "合成成功！{} {} Lv{}{}",
-                        item.emoji, item.name, item.level, hint
+                        "合成成功！{} Lv{}{}",
+                        item.name, item.level, hint
                     ));
                     economy.add_exp(10 * item.level as u64);
                 }
@@ -186,7 +186,8 @@ pub(crate) fn handle_cell_interaction(
                                         message.set("鸡蛋已全部放置！");
                                     }
                                 } else {
-                                    message.set(format!("产出了 {} 鸡蛋！", item.emoji));
+                                    let gen_name = db.get(gen_id).map(|g| g.name.as_str()).unwrap_or("鸡蛋");
+                                    message.set(format!("产出了{}！", gen_name));
                                 }
                             } else {
                                 message.set("棋盘已满，无法放置鸡蛋！");
@@ -259,13 +260,13 @@ pub(crate) fn handle_cell_interaction(
                                 if let Some(gen_item) = last_gen_id.as_deref().and_then(|id| db.get(id)) {
                                     if let Some(left) = remaining_left {
                                         message.set(format!(
-                                            "生成了 {} {}！剩余 {} 次，体力 {}",
-                                            gen_item.emoji, gen_item.name, left, economy.stamina,
+                                            "生成了 {}！剩余 {} 次，体力 {}",
+                                            gen_item.name, left, economy.stamina,
                                         ));
                                     } else {
                                         message.set(format!(
-                                            "生成了 {} {}！剩余体力 {}",
-                                            gen_item.emoji, gen_item.name, economy.stamina,
+                                            "生成了 {}！剩余体力 {}",
+                                            gen_item.name, economy.stamina,
                                         ));
                                     }
                                 } else {
@@ -335,15 +336,15 @@ pub(crate) fn handle_cell_interaction(
                             "— 最高级！".to_string()
                         };
                         message.set(format!(
-                            "已选 {} {} Lv{} {}",
-                            item.emoji, item.name, item.level, hint
+                            "已选 {} Lv{} {}",
+                            item.name, item.level, hint
                         ));
                     }
                 }
             }
             ClickAction::Moved { item, .. } => {
                 if let Some(def) = db.get(&item) {
-                    message.set(format!("移动了 {} {}", def.emoji, def.name));
+                    message.set(format!("移动了 {}", def.name));
                 }
             }
             ClickAction::Deselected => {
