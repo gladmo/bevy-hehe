@@ -62,6 +62,12 @@ jobs:
           cp index.html ./out/
           cp -r assets ./out/
 
+      - name: Embed WASM file size into index.html
+        run: |
+          WASM_SIZE=$(wc -c < ./out/bevy-hehe_bg.wasm | tr -d ' ')
+          sed "s/{{WASM_SIZE}}/${WASM_SIZE}/" ./out/index.html > ./out/index.html.tmp
+          mv ./out/index.html.tmp ./out/index.html
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
