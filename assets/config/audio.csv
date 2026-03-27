@@ -2,3 +2,17 @@ audio_code,audio_path,description
 string,string,string
 音效代码,音效路径,描述
 bgm_main,audio/bgm_SpringFestival_V1.wav,春节背景音乐
+button_click,audio/SfxButtonClick.wav,按钮点击
+merge_collect_coins,audio/SfxMergeCollectCoins.wav,收获金币
+merge_collect_diamond,audio/SfxMergeCollectDiamond.wav,收获钻石
+merge_collect_energy,audio/SfxMergeCollectEnergy.wav,收获能量
+merge_lv2,audio/SfxMergelv2.wav,1级合成
+merge_lv3,audio/SfxMergelv3.wav,2级合成
+merge_lv4,audio/SfxMergelv4.wav,3级合成
+merge_lv5,audio/SfxMergelv5.wav,4级合成
+merge_lv6,audio/SfxMergelv6.wav,5级合成
+merge_lv7,audio/SfxMergelv7.wav,6级合成
+merge_lv8,audio/SfxMergelv8.wav,7级合成
+merge_lv9,audio/SfxMergelv9.wav,8级合成
+order_complete,audio/sfxOrderComplete.wav,订单完成
+order_serve,audio/sfxOrderServe.wav,订单提交
