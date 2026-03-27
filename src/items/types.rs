@@ -47,24 +47,13 @@ pub enum ChainType {
 pub struct GenerationOption {
     /// Item ID to produce.
     pub item_id: &'static str,
-    /// Base probability weight at any generator level.
-    pub base_weight: u32,
-    /// Additional weight added per generator level (scales rarity up with level).
-    pub level_bonus: u32,
+    /// Probability weight for this option (absolute, not level-scaled).
+    pub weight: u32,
 }
 
 impl GenerationOption {
-    pub const fn new(item_id: &'static str, base_weight: u32, level_bonus: u32) -> Self {
-        Self {
-            item_id,
-            base_weight,
-            level_bonus,
-        }
-    }
-
-    /// Compute effective weight at a given generator level.
-    pub fn effective_weight(&self, level: u32) -> u32 {
-        self.base_weight + self.level_bonus * level
+    pub const fn new(item_id: &'static str, weight: u32) -> Self {
+        Self { item_id, weight }
     }
 }
 
@@ -103,21 +92,17 @@ pub struct ItemDef {
 impl ItemDef {
     /// Pick a generated item ID using weighted random selection.
     ///
-    /// Uses `self.generates` options weighted by `effective_weight(self.level)`.
+    /// Uses `self.generates` options weighted by their `weight` field.
     /// Falls back to `self.generates_id` if the table is empty or all weights are zero.
     pub fn pick_generated_item<R: Rng>(&self, rng: &mut R) -> Option<&'static str> {
-        let total: u32 = self
-            .generates
-            .iter()
-            .map(|o| o.effective_weight(self.level))
-            .sum();
+        let total: u32 = self.generates.iter().map(|o| o.weight).sum();
         if total == 0 {
             return self.generates_id;
         }
         let pick = rng.gen_range(0..total);
         let mut acc = 0u32;
         for opt in self.generates {
-            acc += opt.effective_weight(self.level);
+            acc += opt.weight;
             if pick < acc {
                 return Some(opt.item_id);
             }

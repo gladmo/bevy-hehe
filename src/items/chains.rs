@@ -4,125 +4,369 @@ use super::types::{ChainType, GenerationOption, ItemDef};
 // ── Static generation option tables ──────────────────────────────────────────
 // These live as static arrays so they can be referenced by &'static [GenerationOption].
 
-/// 老母鸡 auto-gen: 鸡蛋 only
-static POULTRY_GEN: &[GenerationOption] = &[GenerationOption::new("egg_1", 100, 0)];
+// ── 老母鸡 (Poultry) per-level generation tables ─────────────────────────────
 
-/// 茶壶 gen: 凉茶 (main) + 菊花茶 (level-scaled) + 酒酝圆子 (rare, scales with level)
-static TEA_GEN: &[GenerationOption] = &[
-    GenerationOption::new("coolTea_1", 85, 0),
-    GenerationOption::new("coolTea_2", 0, 2),   // Lv4→8, Lv11→22
-    GenerationOption::new("riceBall_1", 5, 1),  // Lv4→9, Lv11→16
+/// 老母鸡 Lv6 gen: 95% egg_1 + 5% egg_2
+static POULTRY_GEN_6: &[GenerationOption] = &[
+    GenerationOption::new("egg_1", 95),
+    GenerationOption::new("egg_2",  5),
+];
+/// 老母鸡 Lv7 gen: 85% egg_1 + 10% egg_2 + 5% egg_3
+static POULTRY_GEN_7: &[GenerationOption] = &[
+    GenerationOption::new("egg_1", 85),
+    GenerationOption::new("egg_2", 10),
+    GenerationOption::new("egg_3",  5),
+];
+/// 老母鸡 Lv8 gen: 75% egg_1 + 12% egg_2 + 8% egg_3 + 5% egg_4
+static POULTRY_GEN_8: &[GenerationOption] = &[
+    GenerationOption::new("egg_1", 75),
+    GenerationOption::new("egg_2", 12),
+    GenerationOption::new("egg_3",  8),
+    GenerationOption::new("egg_4",  5),
+];
+/// 老母鸡 Lv9 gen: 65% egg_1 + 15% egg_2 + 10% egg_3 + 7% egg_4 + 3% egg_5
+static POULTRY_GEN_9: &[GenerationOption] = &[
+    GenerationOption::new("egg_1", 65),
+    GenerationOption::new("egg_2", 15),
+    GenerationOption::new("egg_3", 10),
+    GenerationOption::new("egg_4",  7),
+    GenerationOption::new("egg_5",  3),
+];
+/// 老母鸡 Lv10 gen: 55% egg_1 + 17% egg_2 + 13% egg_3 + 10% egg_4 + 5% egg_5
+static POULTRY_GEN_10: &[GenerationOption] = &[
+    GenerationOption::new("egg_1", 55),
+    GenerationOption::new("egg_2", 17),
+    GenerationOption::new("egg_3", 13),
+    GenerationOption::new("egg_4", 10),
+    GenerationOption::new("egg_5",  5),
 ];
 
-/// 食篓 gen: 面团 (main) + 汤圆 (level-scaled) + 西瓜 (rare, scales with level)
-static BASKET_GEN: &[GenerationOption] = &[
-    GenerationOption::new("dough_1", 85, 0),
-    GenerationOption::new("dough_2", 0, 2),
-    GenerationOption::new("watermelon_1", 5, 1),
+// ── 茶壶 (Teapot) per-level generation tables ─────────────────────────────────
+
+/// 茶壶 Lv4 gen: 95% coolTea_1 + 5% coolTea_2
+static TEAPOT_GEN_4: &[GenerationOption] = &[
+    GenerationOption::new("coolTea_1", 95),
+    GenerationOption::new("coolTea_2",  5),
+];
+/// 茶壶 Lv5 gen: 88% coolTea_1 + 8% coolTea_2 + 4% coolTea_3
+static TEAPOT_GEN_5: &[GenerationOption] = &[
+    GenerationOption::new("coolTea_1", 88),
+    GenerationOption::new("coolTea_2",  8),
+    GenerationOption::new("coolTea_3",  4),
+];
+/// 茶壶 Lv6 gen: 80% coolTea_1 + 10% coolTea_2 + 6% coolTea_3 + 4% riceBall_1
+static TEAPOT_GEN_6: &[GenerationOption] = &[
+    GenerationOption::new("coolTea_1",  80),
+    GenerationOption::new("coolTea_2",  10),
+    GenerationOption::new("coolTea_3",   6),
+    GenerationOption::new("riceBall_1",  4),
+];
+/// 茶壶 Lv7 gen: 70% coolTea_1 + 12% coolTea_2 + 8% coolTea_3 + 6% riceBall_1 + 4% coolTea_4
+static TEAPOT_GEN_7: &[GenerationOption] = &[
+    GenerationOption::new("coolTea_1",  70),
+    GenerationOption::new("coolTea_2",  12),
+    GenerationOption::new("coolTea_3",   8),
+    GenerationOption::new("riceBall_1",  6),
+    GenerationOption::new("coolTea_4",   4),
+];
+/// 茶壶 Lv8 gen: 60% coolTea_1 + 15% coolTea_2 + 10% coolTea_3 + 8% riceBall_1 + 5% coolTea_4 + 2% riceBall_2
+static TEAPOT_GEN_8: &[GenerationOption] = &[
+    GenerationOption::new("coolTea_1",  60),
+    GenerationOption::new("coolTea_2",  15),
+    GenerationOption::new("coolTea_3",  10),
+    GenerationOption::new("riceBall_1",  8),
+    GenerationOption::new("coolTea_4",   5),
+    GenerationOption::new("riceBall_2",  2),
+];
+/// 茶壶 Lv9 gen: 50% coolTea_1 + 18% coolTea_2 + 12% coolTea_3 + 10% riceBall_1 + 6% coolTea_4 + 4% riceBall_2
+static TEAPOT_GEN_9: &[GenerationOption] = &[
+    GenerationOption::new("coolTea_1",  50),
+    GenerationOption::new("coolTea_2",  18),
+    GenerationOption::new("coolTea_3",  12),
+    GenerationOption::new("riceBall_1", 10),
+    GenerationOption::new("coolTea_4",   6),
+    GenerationOption::new("riceBall_2",  4),
+];
+/// 茶壶 Lv10 gen: 40% coolTea_1 + 20% coolTea_2 + 15% coolTea_3 + 12% riceBall_1 + 8% coolTea_4 + 5% riceBall_2
+static TEAPOT_GEN_10: &[GenerationOption] = &[
+    GenerationOption::new("coolTea_1",  40),
+    GenerationOption::new("coolTea_2",  20),
+    GenerationOption::new("coolTea_3",  15),
+    GenerationOption::new("riceBall_1", 12),
+    GenerationOption::new("coolTea_4",   8),
+    GenerationOption::new("riceBall_2",  5),
+];
+/// 茶壶 Lv11 gen: 30% coolTea_1 + 22% coolTea_2 + 18% coolTea_3 + 15% riceBall_1 + 10% coolTea_4 + 5% riceBall_2
+static TEAPOT_GEN_11: &[GenerationOption] = &[
+    GenerationOption::new("coolTea_1",  30),
+    GenerationOption::new("coolTea_2",  22),
+    GenerationOption::new("coolTea_3",  18),
+    GenerationOption::new("riceBall_1", 15),
+    GenerationOption::new("coolTea_4",  10),
+    GenerationOption::new("riceBall_2",  5),
 ];
 
-/// 手作盒 gen: 纸糊灯笼 (main) + 圆灯笼 (level-scaled)
-static CRAFTBOX_GEN: &[GenerationOption] = &[
-    GenerationOption::new("lantern_1", 88, 0),
-    GenerationOption::new("lantern_2", 0, 2),
+// ── 食篓 (Basket) per-level generation tables ─────────────────────────────────
+
+/// 食篓 Lv5 gen: 95% dough_1 + 5% dough_2
+static BASKET_GEN_5: &[GenerationOption] = &[
+    GenerationOption::new("dough_1", 95),
+    GenerationOption::new("dough_2",  5),
+];
+/// 食篓 Lv6 gen: 88% dough_1 + 8% dough_2 + 4% dough_3
+static BASKET_GEN_6: &[GenerationOption] = &[
+    GenerationOption::new("dough_1", 88),
+    GenerationOption::new("dough_2",  8),
+    GenerationOption::new("dough_3",  4),
+];
+/// 食篓 Lv7 gen: 80% dough_1 + 10% dough_2 + 6% dough_3 + 4% watermelon_1
+static BASKET_GEN_7: &[GenerationOption] = &[
+    GenerationOption::new("dough_1",      80),
+    GenerationOption::new("dough_2",      10),
+    GenerationOption::new("dough_3",       6),
+    GenerationOption::new("watermelon_1",  4),
+];
+/// 食篓 Lv8 gen: 70% dough_1 + 12% dough_2 + 8% dough_3 + 6% watermelon_1 + 4% dough_4
+static BASKET_GEN_8: &[GenerationOption] = &[
+    GenerationOption::new("dough_1",      70),
+    GenerationOption::new("dough_2",      12),
+    GenerationOption::new("dough_3",       8),
+    GenerationOption::new("watermelon_1",  6),
+    GenerationOption::new("dough_4",       4),
+];
+/// 食篓 Lv9 gen: 60% dough_1 + 15% dough_2 + 10% dough_3 + 8% watermelon_1 + 5% dough_4 + 2% watermelon_2
+static BASKET_GEN_9: &[GenerationOption] = &[
+    GenerationOption::new("dough_1",      60),
+    GenerationOption::new("dough_2",      15),
+    GenerationOption::new("dough_3",      10),
+    GenerationOption::new("watermelon_1",  8),
+    GenerationOption::new("dough_4",       5),
+    GenerationOption::new("watermelon_2",  2),
+];
+/// 食篓 Lv10 gen: 50% dough_1 + 18% dough_2 + 12% dough_3 + 10% watermelon_1 + 6% dough_4 + 4% watermelon_2
+static BASKET_GEN_10: &[GenerationOption] = &[
+    GenerationOption::new("dough_1",      50),
+    GenerationOption::new("dough_2",      18),
+    GenerationOption::new("dough_3",      12),
+    GenerationOption::new("watermelon_1", 10),
+    GenerationOption::new("dough_4",       6),
+    GenerationOption::new("watermelon_2",  4),
+];
+/// 食篓 Lv11 gen: 40% dough_1 + 20% dough_2 + 15% dough_3 + 12% watermelon_1 + 8% dough_4 + 5% watermelon_2
+static BASKET_GEN_11: &[GenerationOption] = &[
+    GenerationOption::new("dough_1",      40),
+    GenerationOption::new("dough_2",      20),
+    GenerationOption::new("dough_3",      15),
+    GenerationOption::new("watermelon_1", 12),
+    GenerationOption::new("dough_4",       8),
+    GenerationOption::new("watermelon_2",  5),
+];
+
+// ── 手作盒 (CraftBox) per-level generation tables ─────────────────────────────
+
+/// 手作盒 Lv5 gen: 95% lantern_1 + 5% lantern_2
+static CRAFTBOX_GEN_5: &[GenerationOption] = &[
+    GenerationOption::new("lantern_1", 95),
+    GenerationOption::new("lantern_2",  5),
+];
+/// 手作盒 Lv6 gen: 88% lantern_1 + 8% lantern_2 + 4% lantern_3
+static CRAFTBOX_GEN_6: &[GenerationOption] = &[
+    GenerationOption::new("lantern_1", 88),
+    GenerationOption::new("lantern_2",  8),
+    GenerationOption::new("lantern_3",  4),
+];
+/// 手作盒 Lv7 gen: 80% lantern_1 + 10% lantern_2 + 6% lantern_3 + 4% lantern_4
+static CRAFTBOX_GEN_7: &[GenerationOption] = &[
+    GenerationOption::new("lantern_1", 80),
+    GenerationOption::new("lantern_2", 10),
+    GenerationOption::new("lantern_3",  6),
+    GenerationOption::new("lantern_4",  4),
+];
+/// 手作盒 Lv8 gen: 70% lantern_1 + 12% lantern_2 + 8% lantern_3 + 6% lantern_4 + 4% lantern_5
+static CRAFTBOX_GEN_8: &[GenerationOption] = &[
+    GenerationOption::new("lantern_1", 70),
+    GenerationOption::new("lantern_2", 12),
+    GenerationOption::new("lantern_3",  8),
+    GenerationOption::new("lantern_4",  6),
+    GenerationOption::new("lantern_5",  4),
+];
+/// 手作盒 Lv9 gen: 60% lantern_1 + 15% lantern_2 + 10% lantern_3 + 8% lantern_4 + 5% lantern_5 + 2% lantern_6
+static CRAFTBOX_GEN_9: &[GenerationOption] = &[
+    GenerationOption::new("lantern_1", 60),
+    GenerationOption::new("lantern_2", 15),
+    GenerationOption::new("lantern_3", 10),
+    GenerationOption::new("lantern_4",  8),
+    GenerationOption::new("lantern_5",  5),
+    GenerationOption::new("lantern_6",  2),
+];
+/// 手作盒 Lv10 gen: 50% lantern_1 + 18% lantern_2 + 12% lantern_3 + 10% lantern_4 + 6% lantern_5 + 4% lantern_6
+static CRAFTBOX_GEN_10: &[GenerationOption] = &[
+    GenerationOption::new("lantern_1", 50),
+    GenerationOption::new("lantern_2", 18),
+    GenerationOption::new("lantern_3", 12),
+    GenerationOption::new("lantern_4", 10),
+    GenerationOption::new("lantern_5",  6),
+    GenerationOption::new("lantern_6",  4),
+];
+/// 手作盒 Lv11 gen: 40% lantern_1 + 20% lantern_2 + 15% lantern_3 + 12% lantern_4 + 8% lantern_5 + 5% lantern_6
+static CRAFTBOX_GEN_11: &[GenerationOption] = &[
+    GenerationOption::new("lantern_1", 40),
+    GenerationOption::new("lantern_2", 20),
+    GenerationOption::new("lantern_3", 15),
+    GenerationOption::new("lantern_4", 12),
+    GenerationOption::new("lantern_5",  8),
+    GenerationOption::new("lantern_6",  5),
 ];
 
 /// 妆奁 Lv5 gen: 95% 蓝宝石 + 5% 金戒指
 static DRESSER_GEN_5: &[GenerationOption] = &[
-    GenerationOption::new("ring_1", 95, 0),
-    GenerationOption::new("ring_2",  5, 0),
+    GenerationOption::new("ring_1", 95),
+    GenerationOption::new("ring_2",  5),
 ];
 
 /// 妆奁 Lv6 gen: 90% 蓝宝石 + 8% 金戒指 + 2% 宝石戒指
 static DRESSER_GEN_6: &[GenerationOption] = &[
-    GenerationOption::new("ring_1", 90, 0),
-    GenerationOption::new("ring_2",  8, 0),
-    GenerationOption::new("ring_3",  2, 0),
+    GenerationOption::new("ring_1", 90),
+    GenerationOption::new("ring_2",  8),
+    GenerationOption::new("ring_3",  2),
 ];
 
 /// 妆奁 Lv7 gen: 80% ring_1 + 12% ring_2 + 6% ring_3 + 2% ring_4
 static DRESSER_GEN_7: &[GenerationOption] = &[
-    GenerationOption::new("ring_1", 80, 0),
-    GenerationOption::new("ring_2", 12, 0),
-    GenerationOption::new("ring_3",  6, 0),
-    GenerationOption::new("ring_4",  2, 0),
+    GenerationOption::new("ring_1", 80),
+    GenerationOption::new("ring_2", 12),
+    GenerationOption::new("ring_3",  6),
+    GenerationOption::new("ring_4",  2),
 ];
 
 /// 妆奁 Lv8 gen: 70% ring_1 + 15% ring_2 + 10% ring_3 + 3% ring_4 + 2% ring_5
 static DRESSER_GEN_8: &[GenerationOption] = &[
-    GenerationOption::new("ring_1", 70, 0),
-    GenerationOption::new("ring_2", 15, 0),
-    GenerationOption::new("ring_3", 10, 0),
-    GenerationOption::new("ring_4",  3, 0),
-    GenerationOption::new("ring_5",  2, 0),
+    GenerationOption::new("ring_1", 70),
+    GenerationOption::new("ring_2", 15),
+    GenerationOption::new("ring_3", 10),
+    GenerationOption::new("ring_4",  3),
+    GenerationOption::new("ring_5",  2),
 ];
 
 /// 妆奁 Lv9 gen: 60% ring_1 + 18% ring_2 + 12% ring_3 + 6% ring_4 + 2% ring_5 + 2% 平安扣
 static DRESSER_GEN_9: &[GenerationOption] = &[
-    GenerationOption::new("ring_1",      60, 0),
-    GenerationOption::new("ring_2",      18, 0),
-    GenerationOption::new("ring_3",      12, 0),
-    GenerationOption::new("ring_4",       6, 0),
-    GenerationOption::new("ring_5",       2, 0),
-    GenerationOption::new("peaceLock_1",  2, 0),
+    GenerationOption::new("ring_1",      60),
+    GenerationOption::new("ring_2",      18),
+    GenerationOption::new("ring_3",      12),
+    GenerationOption::new("ring_4",       6),
+    GenerationOption::new("ring_5",       2),
+    GenerationOption::new("peaceLock_1",  2),
 ];
 
 /// 妆奁 Lv10 gen: 50% ring_1 + 20% ring_2 + 15% ring_3 + 8% ring_4 + 4% ring_5 + 3% 平安扣
 static DRESSER_GEN_10: &[GenerationOption] = &[
-    GenerationOption::new("ring_1",      50, 0),
-    GenerationOption::new("ring_2",      20, 0),
-    GenerationOption::new("ring_3",      15, 0),
-    GenerationOption::new("ring_4",       8, 0),
-    GenerationOption::new("ring_5",       4, 0),
-    GenerationOption::new("peaceLock_1",  3, 0),
+    GenerationOption::new("ring_1",      50),
+    GenerationOption::new("ring_2",      20),
+    GenerationOption::new("ring_3",      15),
+    GenerationOption::new("ring_4",       8),
+    GenerationOption::new("ring_5",       4),
+    GenerationOption::new("peaceLock_1",  3),
 ];
 
 /// 妆奁 Lv11 gen: 40% ring_1 + 20% ring_2 + 18% ring_3 + 12% ring_4 + 6% ring_5 + 4% 平安扣
 static DRESSER_GEN_11: &[GenerationOption] = &[
-    GenerationOption::new("ring_1",      40, 0),
-    GenerationOption::new("ring_2",      20, 0),
-    GenerationOption::new("ring_3",      18, 0),
-    GenerationOption::new("ring_4",      12, 0),
-    GenerationOption::new("ring_5",       6, 0),
-    GenerationOption::new("peaceLock_1",  4, 0),
+    GenerationOption::new("ring_1",      40),
+    GenerationOption::new("ring_2",      20),
+    GenerationOption::new("ring_3",      18),
+    GenerationOption::new("ring_4",      12),
+    GenerationOption::new("ring_5",       6),
+    GenerationOption::new("peaceLock_1",  4),
 ];
 
-/// 织布机 gen: 白色布匹 (main) + 彩色布匹 (level-scaled)
-static LOOM_GEN: &[GenerationOption] = &[
-    GenerationOption::new("fabric_1", 88, 0),
-    GenerationOption::new("fabric_2", 0, 2),
+// ── 织布机 (Loom) per-level generation tables ─────────────────────────────────
+
+/// 织布机 Lv5 gen: 95% fabric_1 + 5% fabric_2
+static LOOM_GEN_5: &[GenerationOption] = &[
+    GenerationOption::new("fabric_1", 95),
+    GenerationOption::new("fabric_2",  5),
+];
+/// 织布机 Lv6 gen: 88% fabric_1 + 8% fabric_2 + 4% fabric_3
+static LOOM_GEN_6: &[GenerationOption] = &[
+    GenerationOption::new("fabric_1", 88),
+    GenerationOption::new("fabric_2",  8),
+    GenerationOption::new("fabric_3",  4),
+];
+/// 织布机 Lv7 gen: 80% fabric_1 + 10% fabric_2 + 6% fabric_3 + 4% fabric_4
+static LOOM_GEN_7: &[GenerationOption] = &[
+    GenerationOption::new("fabric_1", 80),
+    GenerationOption::new("fabric_2", 10),
+    GenerationOption::new("fabric_3",  6),
+    GenerationOption::new("fabric_4",  4),
+];
+/// 织布机 Lv8 gen: 70% fabric_1 + 12% fabric_2 + 8% fabric_3 + 6% fabric_4 + 4% fabric_5
+static LOOM_GEN_8: &[GenerationOption] = &[
+    GenerationOption::new("fabric_1", 70),
+    GenerationOption::new("fabric_2", 12),
+    GenerationOption::new("fabric_3",  8),
+    GenerationOption::new("fabric_4",  6),
+    GenerationOption::new("fabric_5",  4),
+];
+/// 织布机 Lv9 gen: 60% fabric_1 + 15% fabric_2 + 10% fabric_3 + 8% fabric_4 + 7% fabric_5
+static LOOM_GEN_9: &[GenerationOption] = &[
+    GenerationOption::new("fabric_1", 60),
+    GenerationOption::new("fabric_2", 15),
+    GenerationOption::new("fabric_3", 10),
+    GenerationOption::new("fabric_4",  8),
+    GenerationOption::new("fabric_5",  7),
+];
+/// 织布机 Lv10 gen: 50% fabric_1 + 18% fabric_2 + 12% fabric_3 + 10% fabric_4 + 10% fabric_5
+static LOOM_GEN_10: &[GenerationOption] = &[
+    GenerationOption::new("fabric_1", 50),
+    GenerationOption::new("fabric_2", 18),
+    GenerationOption::new("fabric_3", 12),
+    GenerationOption::new("fabric_4", 10),
+    GenerationOption::new("fabric_5", 10),
+];
+/// 织布机 Lv11 gen: 40% fabric_1 + 20% fabric_2 + 15% fabric_3 + 12% fabric_4 + 13% fabric_5
+static LOOM_GEN_11: &[GenerationOption] = &[
+    GenerationOption::new("fabric_1", 40),
+    GenerationOption::new("fabric_2", 20),
+    GenerationOption::new("fabric_3", 15),
+    GenerationOption::new("fabric_4", 12),
+    GenerationOption::new("fabric_5", 13),
 ];
 
-/// 绫罗布匹 (fabric_5) gen: 绣花荷包 (main) + 绣花荷包Lv2 (level-scaled)
+/// 绫罗布匹 (fabric_5) gen: 90% 绣花荷包 + 10% 绣花荷包Lv2
 static FABRIC5_GEN: &[GenerationOption] = &[
-    GenerationOption::new("pouch_1", 90, 0),
-    GenerationOption::new("pouch_2", 0, 2),
+    GenerationOption::new("pouch_1", 90),
+    GenerationOption::new("pouch_2", 10),
 ];
 
-/// 红色漆盒 Lv1 gen: 茶壶/食篓/织布机 (equal chance)
+/// 红色漆盒 Lv1 gen: mostly lv1 generators + small chance of lv2
 static RED_BOX_LV1_GEN: &[GenerationOption] = &[
-    GenerationOption::new("teapot_1", 1, 0),
-    GenerationOption::new("basket_1", 1, 0),
-    GenerationOption::new("loom_1", 1, 0),
+    GenerationOption::new("teapot_1", 32),
+    GenerationOption::new("basket_1", 32),
+    GenerationOption::new("loom_1",   31),
+    GenerationOption::new("teapot_2",  2),
+    GenerationOption::new("basket_2",  2),
+    GenerationOption::new("loom_2",    1),
 ];
-/// 红色漆盒 Lv2 gen: 茶壶Lv2/食篓Lv2/织布机Lv2 (equal chance)
+/// 红色漆盒 Lv2 gen: mostly lv2 generators + small chance of lv3
 static RED_BOX_LV2_GEN: &[GenerationOption] = &[
-    GenerationOption::new("teapot_2", 1, 0),
-    GenerationOption::new("basket_2", 1, 0),
-    GenerationOption::new("loom_2", 1, 0),
+    GenerationOption::new("teapot_2", 30),
+    GenerationOption::new("basket_2", 30),
+    GenerationOption::new("loom_2",   30),
+    GenerationOption::new("teapot_3",  3),
+    GenerationOption::new("basket_3",  4),
+    GenerationOption::new("loom_3",    3),
 ];
 
 /// 绿色漆盒 Lv1 gen: 老母鸡/妆奁/手作盒 (equal chance)
 static GREEN_BOX_LV1_GEN: &[GenerationOption] = &[
-    GenerationOption::new("poultry_1", 1, 0),
-    GenerationOption::new("dresser_1", 1, 0),
-    GenerationOption::new("craftBox_1", 1, 0),
+    GenerationOption::new("poultry_1", 1),
+    GenerationOption::new("dresser_1", 1),
+    GenerationOption::new("craftBox_1", 1),
 ];
 /// 绿色漆盒 Lv2 gen: 老母鸡Lv2/妆奁Lv2/手作盒Lv2 (equal chance)
 static GREEN_BOX_LV2_GEN: &[GenerationOption] = &[
-    GenerationOption::new("poultry_2", 1, 0),
-    GenerationOption::new("dresser_2", 1, 0),
-    GenerationOption::new("craftBox_2", 1, 0),
+    GenerationOption::new("poultry_2", 1),
+    GenerationOption::new("dresser_2", 1),
+    GenerationOption::new("craftBox_2", 1),
 ];
 
 /// All item definitions in the game.
@@ -138,11 +382,11 @@ pub fn all_items() -> Vec<ItemDef> {
     items.push(ItemDef::child("poultry_3", ChainType::Poultry, 3, "老母鸡", "🐔", Some("poultry_4"), pc, Some("images/items/item_icon_10603.png")));
     items.push(ItemDef::child("poultry_4", ChainType::Poultry, 4, "老母鸡", "🐔", Some("poultry_5"), pc, Some("images/items/item_icon_10604.png")));
     items.push(ItemDef::child("poultry_5", ChainType::Poultry, 5, "老母鸡", "🐔", Some("poultry_6"), pc, Some("images/items/item_icon_10605.png")));
-    items.push(ItemDef::auto_generator("poultry_6",  ChainType::Poultry, 6,  "老母鸡", "🐔", POULTRY_GEN, "egg_1", 3600.0, Some("poultry_7"),  pc, Some("images/items/item_icon_10606.png")));
-    items.push(ItemDef::auto_generator("poultry_7",  ChainType::Poultry, 7,  "老母鸡", "🐔", POULTRY_GEN, "egg_1", 3600.0, Some("poultry_8"),  pc, Some("images/items/item_icon_10607.png")));
-    items.push(ItemDef::auto_generator("poultry_8",  ChainType::Poultry, 8,  "老母鸡", "🐔", POULTRY_GEN, "egg_1", 3600.0, Some("poultry_9"),  pc, Some("images/items/item_icon_10608.png")));
-    items.push(ItemDef::auto_generator("poultry_9",  ChainType::Poultry, 9,  "老母鸡", "🐔", POULTRY_GEN, "egg_1", 3600.0, Some("poultry_10"), pc, Some("images/items/item_icon_10609.png")));
-    items.push(ItemDef::auto_generator("poultry_10", ChainType::Poultry, 10, "老母鸡", "🐔", POULTRY_GEN, "egg_1", 3600.0, None,             pc, Some("images/items/item_icon_10610.png")));
+    items.push(ItemDef::auto_generator("poultry_6",  ChainType::Poultry, 6,  "老母鸡", "🐔", POULTRY_GEN_6,  "egg_1", 3600.0, Some("poultry_7"),  pc, Some("images/items/item_icon_10606.png")));
+    items.push(ItemDef::auto_generator("poultry_7",  ChainType::Poultry, 7,  "老母鸡", "🐔", POULTRY_GEN_7,  "egg_1", 3600.0, Some("poultry_8"),  pc, Some("images/items/item_icon_10607.png")));
+    items.push(ItemDef::auto_generator("poultry_8",  ChainType::Poultry, 8,  "老母鸡", "🐔", POULTRY_GEN_8,  "egg_1", 3600.0, Some("poultry_9"),  pc, Some("images/items/item_icon_10608.png")));
+    items.push(ItemDef::auto_generator("poultry_9",  ChainType::Poultry, 9,  "老母鸡", "🐔", POULTRY_GEN_9,  "egg_1", 3600.0, Some("poultry_10"), pc, Some("images/items/item_icon_10609.png")));
+    items.push(ItemDef::auto_generator("poultry_10", ChainType::Poultry, 10, "老母鸡", "🐔", POULTRY_GEN_10, "egg_1", 3600.0, None,             pc, Some("images/items/item_icon_10610.png")));
 
     // ── 鸡蛋 (Egg) child chain (7 levels) ────────────────────────────────────
     let ec = (0.98, 0.95, 0.75); // light yellow
@@ -160,14 +404,14 @@ pub fn all_items() -> Vec<ItemDef> {
     items.push(ItemDef::child("teapot_1", ChainType::Teapot, 1, "茶叶", "🫖", Some("teapot_2"), tc, Some("images/items/item_icon_10201.png")));
     items.push(ItemDef::child("teapot_2", ChainType::Teapot, 2, "茶叶袋", "🫖", Some("teapot_3"), tc, Some("images/items/item_icon_10202.png")));
     items.push(ItemDef::child("teapot_3", ChainType::Teapot, 3, "茶叶罐", "🫖", Some("teapot_4"), tc, Some("images/items/item_icon_10203.png")));
-    items.push(ItemDef::generator("teapot_4",  ChainType::Teapot, 4,  "茶壶",   "🫖", TEA_GEN, "coolTea_1", Some("teapot_5"),  tc, Some("images/items/item_icon_10204.png")));
-    items.push(ItemDef::generator("teapot_5",  ChainType::Teapot, 5,  "雨前茶壶",   "🫖", TEA_GEN, "coolTea_1", Some("teapot_6"),  tc, Some("images/items/item_icon_10205.png")));
-    items.push(ItemDef::generator("teapot_6",  ChainType::Teapot, 6,  "青烟茶壶",   "🫖", TEA_GEN, "coolTea_1", Some("teapot_7"),  tc, Some("images/items/item_icon_10206.png")));
-    items.push(ItemDef::generator("teapot_7",  ChainType::Teapot, 7,  "云栖茶壶", "🫖", TEA_GEN, "coolTea_1", Some("teapot_8"),  tc, Some("images/items/item_icon_10207.png")));
-    items.push(ItemDef::generator("teapot_8",  ChainType::Teapot, 8,  "松涧茶壶", "🫖", TEA_GEN, "coolTea_1", Some("teapot_9"),  tc, Some("images/items/item_icon_10208.png")));
-    items.push(ItemDef::generator("teapot_9",  ChainType::Teapot, 9,  "围炉燃云", "🫖", TEA_GEN, "coolTea_1", Some("teapot_10"), tc, Some("images/items/item_icon_10209.png")));
-    items.push(ItemDef::generator("teapot_10", ChainType::Teapot, 10, "围炉煨雪", "🫖", TEA_GEN, "coolTea_1", Some("teapot_11"), tc, Some("images/items/item_icon_10210.png")));
-    items.push(ItemDef::generator("teapot_11", ChainType::Teapot, 11, "围炉煎月", "🫖", TEA_GEN, "coolTea_1", None,             tc, Some("images/items/item_icon_10211.png")));
+    items.push(ItemDef::generator("teapot_4",  ChainType::Teapot, 4,  "茶壶",   "🫖", TEAPOT_GEN_4,  "coolTea_1", Some("teapot_5"),  tc, Some("images/items/item_icon_10204.png")));
+    items.push(ItemDef::generator("teapot_5",  ChainType::Teapot, 5,  "雨前茶壶",   "🫖", TEAPOT_GEN_5,  "coolTea_1", Some("teapot_6"),  tc, Some("images/items/item_icon_10205.png")));
+    items.push(ItemDef::generator("teapot_6",  ChainType::Teapot, 6,  "青烟茶壶",   "🫖", TEAPOT_GEN_6,  "coolTea_1", Some("teapot_7"),  tc, Some("images/items/item_icon_10206.png")));
+    items.push(ItemDef::generator("teapot_7",  ChainType::Teapot, 7,  "云栖茶壶", "🫖", TEAPOT_GEN_7,  "coolTea_1", Some("teapot_8"),  tc, Some("images/items/item_icon_10207.png")));
+    items.push(ItemDef::generator("teapot_8",  ChainType::Teapot, 8,  "松涧茶壶", "🫖", TEAPOT_GEN_8,  "coolTea_1", Some("teapot_9"),  tc, Some("images/items/item_icon_10208.png")));
+    items.push(ItemDef::generator("teapot_9",  ChainType::Teapot, 9,  "围炉燃云", "🫖", TEAPOT_GEN_9,  "coolTea_1", Some("teapot_10"), tc, Some("images/items/item_icon_10209.png")));
+    items.push(ItemDef::generator("teapot_10", ChainType::Teapot, 10, "围炉煨雪", "🫖", TEAPOT_GEN_10, "coolTea_1", Some("teapot_11"), tc, Some("images/items/item_icon_10210.png")));
+    items.push(ItemDef::generator("teapot_11", ChainType::Teapot, 11, "围炉煎月", "🫖", TEAPOT_GEN_11, "coolTea_1", None,             tc, Some("images/items/item_icon_10211.png")));
 
     // ── 凉茶 (CoolTea) child chain (14 levels) ────────────────────────────────
     let ct = (0.6, 0.85, 0.75); // teal/green
@@ -203,13 +447,13 @@ pub fn all_items() -> Vec<ItemDef> {
     items.push(ItemDef::child("basket_2", ChainType::Basket, 2, "竹片", "🧺", Some("basket_3"), bsc, Some("images/items/item_icon_10102.png")));
     items.push(ItemDef::child("basket_3", ChainType::Basket, 3, "竹篓", "🧺", Some("basket_4"), bsc, Some("images/items/item_icon_10103.png")));
     items.push(ItemDef::child("basket_4", ChainType::Basket, 4, "竹简食篓", "🧺", Some("basket_5"), bsc, Some("images/items/item_icon_10104.png")));
-    items.push(ItemDef::generator("basket_5",  ChainType::Basket, 5,  "竹趣食篓", "🧺", BASKET_GEN, "dough_1", Some("basket_6"),  bsc, Some("images/items/item_icon_10105.png")));
-    items.push(ItemDef::generator("basket_6",  ChainType::Basket, 6,  "竹华食篓", "🧺", BASKET_GEN, "dough_1", Some("basket_7"),  bsc, Some("images/items/item_icon_10106.png")));
-    items.push(ItemDef::generator("basket_7",  ChainType::Basket, 7,  "竹隐食篓", "🧺", BASKET_GEN, "dough_1", Some("basket_8"),  bsc, Some("images/items/item_icon_10107.png")));
-    items.push(ItemDef::generator("basket_8",  ChainType::Basket, 8,  "竹食盒", "🧺", BASKET_GEN, "dough_1", Some("basket_9"),  bsc, Some("images/items/item_icon_10108.png")));
-    items.push(ItemDef::generator("basket_9",  ChainType::Basket, 9,  "街青食盒", "🧺", BASKET_GEN, "dough_1", Some("basket_10"), bsc, Some("images/items/item_icon_10109.png")));
-    items.push(ItemDef::generator("basket_10", ChainType::Basket, 10, "锁秋食盒", "🧺", BASKET_GEN, "dough_1", Some("basket_11"), bsc, Some("images/items/item_icon_10110.png")));
-    items.push(ItemDef::generator("basket_11", ChainType::Basket, 11, "空筠食盒", "🧺", BASKET_GEN, "dough_1", None,             bsc, Some("images/items/item_icon_10111.png")));
+    items.push(ItemDef::generator("basket_5",  ChainType::Basket, 5,  "竹趣食篓", "🧺", BASKET_GEN_5,  "dough_1", Some("basket_6"),  bsc, Some("images/items/item_icon_10105.png")));
+    items.push(ItemDef::generator("basket_6",  ChainType::Basket, 6,  "竹华食篓", "🧺", BASKET_GEN_6,  "dough_1", Some("basket_7"),  bsc, Some("images/items/item_icon_10106.png")));
+    items.push(ItemDef::generator("basket_7",  ChainType::Basket, 7,  "竹隐食篓", "🧺", BASKET_GEN_7,  "dough_1", Some("basket_8"),  bsc, Some("images/items/item_icon_10107.png")));
+    items.push(ItemDef::generator("basket_8",  ChainType::Basket, 8,  "竹食盒", "🧺", BASKET_GEN_8,  "dough_1", Some("basket_9"),  bsc, Some("images/items/item_icon_10108.png")));
+    items.push(ItemDef::generator("basket_9",  ChainType::Basket, 9,  "街青食盒", "🧺", BASKET_GEN_9,  "dough_1", Some("basket_10"), bsc, Some("images/items/item_icon_10109.png")));
+    items.push(ItemDef::generator("basket_10", ChainType::Basket, 10, "锁秋食盒", "🧺", BASKET_GEN_10, "dough_1", Some("basket_11"), bsc, Some("images/items/item_icon_10110.png")));
+    items.push(ItemDef::generator("basket_11", ChainType::Basket, 11, "空筠食盒", "🧺", BASKET_GEN_11, "dough_1", None,             bsc, Some("images/items/item_icon_10111.png")));
 
         // ── 面团 (Dough/Pastry) child chain (15 levels) ───────────────────────────
     let dc = (0.95, 0.85, 0.65); // light tan
@@ -246,13 +490,13 @@ pub fn all_items() -> Vec<ItemDef> {
     items.push(ItemDef::child("craftBox_2", ChainType::CraftBox, 2, "直尺毛笔", "📦", Some("craftBox_3"), cbc, Some("images/items/item_icon_10302.png")));
     items.push(ItemDef::child("craftBox_3", ChainType::CraftBox, 3, "手作用具", "📦", Some("craftBox_4"), cbc, Some("images/items/item_icon_10303.png")));
     items.push(ItemDef::child("craftBox_4", ChainType::CraftBox, 4, "初品手作盒", "📦", Some("craftBox_5"), cbc, Some("images/items/item_icon_10304.png")));
-    items.push(ItemDef::generator("craftBox_5",  ChainType::CraftBox, 5,  "下品手作盒", "📦", CRAFTBOX_GEN, "lantern_1", Some("craftBox_6"),  cbc, Some("images/items/item_icon_10305.png")));
-    items.push(ItemDef::generator("craftBox_6",  ChainType::CraftBox, 6,  "中品手作盒", "📦", CRAFTBOX_GEN, "lantern_1", Some("craftBox_7"),  cbc, Some("images/items/item_icon_10306.png")));
-    items.push(ItemDef::generator("craftBox_7",  ChainType::CraftBox, 7,  "上品手作盒", "📦", CRAFTBOX_GEN, "lantern_1", Some("craftBox_8"),  cbc, Some("images/items/item_icon_10307.png")));
-    items.push(ItemDef::generator("craftBox_8",  ChainType::CraftBox, 8,  "精研手作盒", "📦", CRAFTBOX_GEN, "lantern_1", Some("craftBox_9"),  cbc, Some("images/items/item_icon_10308.png")));
-    items.push(ItemDef::generator("craftBox_9",  ChainType::CraftBox, 9,  "登科手作桌", "📦", CRAFTBOX_GEN, "lantern_1", Some("craftBox_10"), cbc, Some("images/items/item_icon_10309.png")));
-    items.push(ItemDef::generator("craftBox_10", ChainType::CraftBox, 10, "翰林手作台", "📦", CRAFTBOX_GEN, "lantern_1", Some("craftBox_11"), cbc, Some("images/items/item_icon_10310.png")));
-    items.push(ItemDef::generator("craftBox_11", ChainType::CraftBox, 11, "御制手作桌", "📦", CRAFTBOX_GEN, "lantern_1", None,                cbc, Some("images/items/item_icon_10311.png")));
+    items.push(ItemDef::generator("craftBox_5",  ChainType::CraftBox, 5,  "下品手作盒", "📦", CRAFTBOX_GEN_5,  "lantern_1", Some("craftBox_6"),  cbc, Some("images/items/item_icon_10305.png")));
+    items.push(ItemDef::generator("craftBox_6",  ChainType::CraftBox, 6,  "中品手作盒", "📦", CRAFTBOX_GEN_6,  "lantern_1", Some("craftBox_7"),  cbc, Some("images/items/item_icon_10306.png")));
+    items.push(ItemDef::generator("craftBox_7",  ChainType::CraftBox, 7,  "上品手作盒", "📦", CRAFTBOX_GEN_7,  "lantern_1", Some("craftBox_8"),  cbc, Some("images/items/item_icon_10307.png")));
+    items.push(ItemDef::generator("craftBox_8",  ChainType::CraftBox, 8,  "精研手作盒", "📦", CRAFTBOX_GEN_8,  "lantern_1", Some("craftBox_9"),  cbc, Some("images/items/item_icon_10308.png")));
+    items.push(ItemDef::generator("craftBox_9",  ChainType::CraftBox, 9,  "登科手作桌", "📦", CRAFTBOX_GEN_9,  "lantern_1", Some("craftBox_10"), cbc, Some("images/items/item_icon_10309.png")));
+    items.push(ItemDef::generator("craftBox_10", ChainType::CraftBox, 10, "翰林手作台", "📦", CRAFTBOX_GEN_10, "lantern_1", Some("craftBox_11"), cbc, Some("images/items/item_icon_10310.png")));
+    items.push(ItemDef::generator("craftBox_11", ChainType::CraftBox, 11, "御制手作桌", "📦", CRAFTBOX_GEN_11, "lantern_1", None,                cbc, Some("images/items/item_icon_10311.png")));
 
     // ── 灯笼 (Lantern) child chain (12 levels) ────────────────────────────────
     let lc = (0.95, 0.35, 0.25); // red/orange
@@ -315,13 +559,13 @@ pub fn all_items() -> Vec<ItemDef> {
     items.push(ItemDef::child("loom_2", ChainType::Loom, 2, "棉花团", "🪡", Some("loom_3"), lmc, Some("images/items/item_icon_10502.png")));
     items.push(ItemDef::child("loom_3", ChainType::Loom, 3, "棉线", "🪡", Some("loom_4"), lmc, Some("images/items/item_icon_10503.png")));
     items.push(ItemDef::child("loom_4", ChainType::Loom, 4, "多股棉线", "🪡", Some("loom_5"), lmc, Some("images/items/item_icon_10504.png")));
-    items.push(ItemDef::generator("loom_5",  ChainType::Loom, 5,  "单锭纺车", "🪡", LOOM_GEN, "fabric_1", Some("loom_6"),  lmc, Some("images/items/item_icon_10505.png")));
-    items.push(ItemDef::generator("loom_6",  ChainType::Loom, 6,  "多锭纺车", "🪡", LOOM_GEN, "fabric_1", Some("loom_7"),  lmc, Some("images/items/item_icon_10506.png")));
-    items.push(ItemDef::generator("loom_7",  ChainType::Loom, 7,  "织布机", "🪡", LOOM_GEN, "fabric_1", Some("loom_8"),  lmc, Some("images/items/item_icon_10507.png")));
-    items.push(ItemDef::generator("loom_8",  ChainType::Loom, 8,  "斜织机", "🪡", LOOM_GEN, "fabric_1", Some("loom_9"),  lmc, Some("images/items/item_icon_10508.png")));
-    items.push(ItemDef::generator("loom_9",  ChainType::Loom, 9,  "单综织机", "🪡", LOOM_GEN, "fabric_1", Some("loom_10"), lmc, Some("images/items/item_icon_10509.png")));
-    items.push(ItemDef::generator("loom_10", ChainType::Loom, 10, "多综织机", "🪡", LOOM_GEN, "fabric_1", Some("loom_11"), lmc, Some("images/items/item_icon_10510.png")));
-    items.push(ItemDef::generator("loom_11", ChainType::Loom, 11, "花楼织机", "🪡", LOOM_GEN, "fabric_1", None,            lmc, Some("images/items/item_icon_10511.png")));
+    items.push(ItemDef::generator("loom_5",  ChainType::Loom, 5,  "单锭纺车", "🪡", LOOM_GEN_5,  "fabric_1", Some("loom_6"),  lmc, Some("images/items/item_icon_10505.png")));
+    items.push(ItemDef::generator("loom_6",  ChainType::Loom, 6,  "多锭纺车", "🪡", LOOM_GEN_6,  "fabric_1", Some("loom_7"),  lmc, Some("images/items/item_icon_10506.png")));
+    items.push(ItemDef::generator("loom_7",  ChainType::Loom, 7,  "织布机", "🪡", LOOM_GEN_7,  "fabric_1", Some("loom_8"),  lmc, Some("images/items/item_icon_10507.png")));
+    items.push(ItemDef::generator("loom_8",  ChainType::Loom, 8,  "斜织机", "🪡", LOOM_GEN_8,  "fabric_1", Some("loom_9"),  lmc, Some("images/items/item_icon_10508.png")));
+    items.push(ItemDef::generator("loom_9",  ChainType::Loom, 9,  "单综织机", "🪡", LOOM_GEN_9,  "fabric_1", Some("loom_10"), lmc, Some("images/items/item_icon_10509.png")));
+    items.push(ItemDef::generator("loom_10", ChainType::Loom, 10, "多综织机", "🪡", LOOM_GEN_10, "fabric_1", Some("loom_11"), lmc, Some("images/items/item_icon_10510.png")));
+    items.push(ItemDef::generator("loom_11", ChainType::Loom, 11, "花楼织机", "🪡", LOOM_GEN_11, "fabric_1", None,            lmc, Some("images/items/item_icon_10511.png")));
 
     // ── 布匹 (Fabric) child chain (5 levels) ──────────────────────────────────
     // Lv5: max level AND a click-generator for 荷包
