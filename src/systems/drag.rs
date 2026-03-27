@@ -38,15 +38,15 @@ fn finish_drag(
                     if let Some(item) = db.get(&result) {
                         let hint = if item.is_generator { "（生成器！）" } else { "" };
                         message.set(format!(
-                            "合成成功！{} {} Lv{}{}",
-                            item.emoji, item.name, item.level, hint
+                            "合成成功！{} Lv{}{}",
+                            item.name, item.level, hint
                         ));
                         economy.add_exp(10 * item.level as u64);
                     }
                 }
                 ClickAction::Moved { item, .. } => {
                     if let Some(def) = db.get(&item) {
-                        message.set(format!("移动了 {} {}", def.emoji, def.name));
+                        message.set(format!("移动了 {}", def.name));
                     }
                 }
                 ClickAction::Swapped { .. } => {

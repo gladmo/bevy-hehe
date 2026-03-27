@@ -292,7 +292,7 @@ pub(crate) fn update_item_detail_bar(
         if let Some(item_id) = board.cells[selected_idx].item_id.as_deref() {
             if let Some(def) = db.get(item_id) {
                 if let Ok(mut t) = name_q.single_mut() {
-                    **t = format!("{} {} Lv{}", def.emoji, def.name, def.level);
+                    **t = format!("{} Lv{}", def.name, def.level);
                 }
                 if let Ok(mut t) = hint_q.single_mut() {
                     **t = if def.is_auto_generator {

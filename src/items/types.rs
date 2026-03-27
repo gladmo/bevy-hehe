@@ -60,7 +60,6 @@ pub struct ItemDef {
     pub chain: ChainType,
     pub level: u32,
     pub name: String,
-    pub emoji: String,
     /// Asset path for the item icon image (e.g. "images/items/item_icon.png")
     pub icon_path: Option<String>,
     /// If true, clicking this item generates a child item (costs 1 stamina)
