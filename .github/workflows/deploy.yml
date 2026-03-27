@@ -51,12 +51,9 @@ jobs:
 
       - name: Generate JS bindings
         run: |
-          TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
-          OUT_NAME="bevy-${TIMESTAMP}"
-          echo "OUT_NAME=${OUT_NAME}" >> "$GITHUB_ENV"
           wasm-bindgen \
             --out-dir ./out \
-            --out-name "${OUT_NAME}" \
+            --out-name "hehe" \
             --target web \
             --no-typescript \
             target/wasm32-unknown-unknown/wasm-release/bevy-hehe.wasm
@@ -68,11 +65,9 @@ jobs:
 
       - name: Embed WASM file size into index.html
         run: |
-          WASM_SIZE=$(wc -c < "./out/${OUT_NAME}_bg.wasm" | tr -d ' ')
+          WASM_SIZE=$(wc -c < "./out/hehe.wasm" | tr -d ' ')
           sed \
             -e "s/{{WASM_SIZE}}/${WASM_SIZE}/" \
-            -e "s/bevy-hehe\.js/${OUT_NAME}.js/g" \
-            -e "s/bevy-hehe_bg\.wasm/${OUT_NAME}_bg.wasm/g" \
             ./out/index.html > ./out/index.html.tmp
           mv ./out/index.html.tmp ./out/index.html
 

@@ -14,7 +14,7 @@ wasm-bindgen \
 cp index.html ./out/
 cp -r assets ./out/
 
-WASM_SIZE=$(wc -c < "./out/${OUT_NAME}_bg.wasm" | tr -d ' ')
+WASM_SIZE=$(wc -c < "./out/${OUT_NAME}.wasm" | tr -d ' ')
 sed \
   -e "s/{{WASM_SIZE}}/${WASM_SIZE}/" \
   ./out/index.html > ./out/index.html.tmp
