@@ -14,6 +14,7 @@ mod orders;
 mod systems;
 mod ui;
 
+use bevy::asset::AssetMetaCheck;
 use bevy::prelude::*;
 use board::Board;
 use economy::Economy;
@@ -345,20 +346,29 @@ pub(crate) struct PreloadedImages(pub(crate) Vec<Handle<Image>>);
 
 fn main() {
     let mut app = App::new();
-    app.add_plugins(DefaultPlugins.set(WindowPlugin {
-        primary_window: Some(Window {
-            title: "合合游戏 (HeHe Game)".to_string(),
-            resolution: (WINDOW_W, WINDOW_H).into(),
-            resizable: false,
-            // On WASM, fit into the browser canvas rather than opening a new window.
-            #[cfg(target_arch = "wasm32")]
-            canvas: Some("#bevy-canvas".to_string()),
-            #[cfg(target_arch = "wasm32")]
-            fit_canvas_to_parent: true,
-            ..default()
-        }),
-        ..default()
-    }))
+    app.add_plugins(
+        DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "合合游戏 (HeHe Game)".to_string(),
+                    resolution: (WINDOW_W, WINDOW_H).into(),
+                    resizable: false,
+                    // On WASM, fit into the browser canvas rather than opening a new window.
+                    #[cfg(target_arch = "wasm32")]
+                    canvas: Some("#bevy-canvas".to_string()),
+                    #[cfg(target_arch = "wasm32")]
+                    fit_canvas_to_parent: true,
+                    ..default()
+                }),
+                ..default()
+            })
+            // Disable .meta file loading: the assets directory ships no .meta files,
+            // so the default behaviour causes spurious 404 HTTP requests in WASM.
+            .set(AssetPlugin {
+                meta_check: AssetMetaCheck::Never,
+                ..default()
+            }),
+    )
     .insert_resource(ClearColor(BG))
     .init_resource::<Board>()
     .init_resource::<Economy>()
