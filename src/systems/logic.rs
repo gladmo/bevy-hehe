@@ -144,7 +144,6 @@ pub(crate) fn handle_cell_interaction(
     cooldowns: Res<AutoGenCooldowns>,
     counts: Res<AutoGenCounts>,
     double_stamina: Res<DoubleStaminaMode>,
-    game_audio: Res<GameAudio>,
     interaction_query: Query<(&Interaction, &BoardCell), Changed<Interaction>>,
     cell_image_query: Query<(Entity, &CellImage)>,
 ) {
@@ -167,24 +166,6 @@ pub(crate) fn handle_cell_interaction(
 
         let action = board.handle_click(cell.index, &db);
         match action {
-            ClickAction::Merged { result, .. } => {
-                if let Some(item) = db.get(&result) {
-                    let hint = if item.is_generator {
-                        "（生成器！）"
-                    } else {
-                        ""
-                    };
-                    message.set(format!(
-                        "合成成功！{} Lv{}{}",
-                        item.name, item.level, hint
-                    ));
-                    economy.add_exp(10 * item.level as u64);
-                    // Play merge SFX: merge_lv{result_level}, fallback to merge_lv9.
-                    if let Some(sfx) = game_audio.merge_sfx(item.level) {
-                        commands.spawn((AudioPlayer::new(sfx), PlaybackSettings::DESPAWN));
-                    }
-                }
-            }
             ClickAction::GeneratorActivated(idx, item_id) => {
                 if let Some(item) = db.get(&item_id) {
                     if item.is_auto_generator {
@@ -353,7 +334,7 @@ pub(crate) fn handle_cell_interaction(
                                 "— 体力不足，无法生成子棋".to_string()
                             }
                         } else if item.merge_result_id.is_some() {
-                            "— 点击同类同级棋子合成".to_string()
+                            "— 拖动到同类同级棋子合成".to_string()
                         } else {
                             "— 最高级！".to_string()
                         };
@@ -362,11 +343,6 @@ pub(crate) fn handle_cell_interaction(
                             item.name, item.level, hint
                         ));
                     }
-                }
-            }
-            ClickAction::Moved { item, .. } => {
-                if let Some(def) = db.get(&item) {
-                    message.set(format!("移动了 {}", def.name));
                 }
             }
             ClickAction::ToolUsed(idx, item_id) => {
@@ -400,6 +376,8 @@ pub(crate) fn handle_cell_interaction(
             ClickAction::Deselected => {
                 message.set("取消选中");
             }
+            ClickAction::Merged { .. } => {}
+            ClickAction::Moved { .. } => {}
             ClickAction::Swapped { .. } => {}
             ClickAction::None => {}
         }
