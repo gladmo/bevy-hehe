@@ -348,7 +348,7 @@ pub(crate) fn update_item_detail_bar(
                         let pending =
                             egg_storage.0.get(&selected_idx).copied().unwrap_or(0);
                         format!(
-                            "自动产蛋（每 {:.0} 分钟 1 枚，最多存 6 枚）| 已存 {} 枚 | 再次点击放置到最近空位",
+                            "自动产蛋，每 {:.0} 分钟 1 枚，已存 {}/6 枚",
                             def.auto_gen_interval_secs / SECONDS_PER_MINUTE,
                             pending
                         )
@@ -356,16 +356,16 @@ pub(crate) fn update_item_detail_bar(
                         let stamina_cost = if double_stamina.active { 2 } else { 1 };
                         if economy.stamina >= stamina_cost {
                             format!(
-                                "再次点击消耗 {} 体力生成子棋（剩余体力：{}/{}）",
+                                "消耗 {} 体力生成（剩余 {}/{}）",
                                 stamina_cost, economy.stamina, economy.max_stamina
                             )
                         } else {
-                            "体力不足！无法生成子棋（等待体力恢复）".to_string()
+                            "体力不足，等待恢复".to_string()
                         }
                     } else if def.merge_result_id.is_some() {
-                        "拖拽或点击同类同级棋子可合成升级".to_string()
+                        "可合成升级".to_string()
                     } else {
-                        "✨ 最高级！".to_string()
+                        "✨ 最高级".to_string()
                     };
                 }
                 if let Ok(mut img) = icon_q.single_mut() {

@@ -353,6 +353,7 @@ fn spawn_bottom_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
             padding: UiRect::axes(px(10.0), px(8.0)),
             column_gap: px(10.0),
             border: UiRect::top(px(2.0)),
+            overflow: Overflow::clip(),
             ..default()
         },
         BackgroundColor(DETAIL_BAR_BG),
