@@ -132,6 +132,7 @@ impl Board {
     }
 
     /// Handle a cell click. Returns the action taken.
+    /// Movement and merging are handled exclusively via drag-and-drop.
     pub fn handle_click(&mut self, clicked_idx: usize, db: &ItemDatabase) -> ClickAction {
         let clicked_item = self.cells[clicked_idx].item_id.clone();
 
@@ -163,44 +164,9 @@ impl Board {
                     self.selected = None;
                     ClickAction::Deselected
                 } else {
-                    let selected_item = self.cells[selected_idx].item_id.clone();
-
-                    // Try to merge
-                    if let (Some(sel_id), Some(click_id)) = (&selected_item, &clicked_item) {
-                        if db.can_merge(sel_id, click_id) {
-                            let result_id = db
-                                .get(sel_id)
-                                .and_then(|i| i.merge_result_id.clone())
-                                .unwrap();
-                            // Remove both items and place merged result at clicked cell
-                            self.cells[selected_idx].item_id = None;
-                            self.cells[clicked_idx].item_id = Some(result_id.clone());
-                            self.selected = None;
-                            self.dirty = true;
-                            return ClickAction::Merged {
-                                source: selected_idx,
-                                target: clicked_idx,
-                                result: result_id,
-                            };
-                        }
-                    }
-
-                    // Move selected item to empty clicked cell
-                    if clicked_item.is_none() {
-                        if let Some(sel_id) = selected_item {
-                            self.cells[selected_idx].item_id = None;
-                            self.cells[clicked_idx].item_id = Some(sel_id.clone());
-                            self.selected = None;
-                            self.dirty = true;
-                            return ClickAction::Moved {
-                                from: selected_idx,
-                                to: clicked_idx,
-                                item: sel_id,
-                            };
-                        }
-                    }
-
-                    // Select the clicked item instead
+                    // If the clicked cell has an item, switch selection to it.
+                    // If the clicked cell is empty, deselect.
+                    // Movement and merging are only available via drag-and-drop.
                     if clicked_item.is_some() {
                         self.selected = Some(clicked_idx);
                         return ClickAction::Selected(clicked_idx);
