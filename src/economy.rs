@@ -99,6 +99,84 @@ impl Economy {
 #[derive(Component)]
 pub struct StaminaLabel;
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn economy_with_stamina(stamina: i32) -> Economy {
+        let mut e = Economy::default();
+        e.stamina = stamina;
+        e
+    }
+
+    #[test]
+    fn recovery_adds_one_per_interval() {
+        let mut e = economy_with_stamina(0);
+        // One full interval → stamina goes from 0 to 1.
+        e.tick(STAMINA_RECOVERY_INTERVAL_SECS);
+        assert_eq!(e.stamina, 1);
+    }
+
+    #[test]
+    fn recovery_caps_at_max_stamina() {
+        let mut e = economy_with_stamina(MAX_STAMINA - 1);
+        // Two intervals — second tick should not exceed max.
+        e.tick(STAMINA_RECOVERY_INTERVAL_SECS * 2.0);
+        assert_eq!(e.stamina, MAX_STAMINA);
+    }
+
+    #[test]
+    fn recovery_does_not_tick_when_at_max() {
+        let mut e = economy_with_stamina(MAX_STAMINA);
+        e.tick(STAMINA_RECOVERY_INTERVAL_SECS);
+        // Already at cap — must not change.
+        assert_eq!(e.stamina, MAX_STAMINA);
+        // Timer must have been reset (not accumulated).
+        assert_eq!(e.stamina_timer, 0.0);
+    }
+
+    #[test]
+    fn uncapped_add_can_exceed_max_stamina() {
+        let mut e = economy_with_stamina(MAX_STAMINA);
+        e.add_stamina_uncapped(50);
+        assert_eq!(e.stamina, MAX_STAMINA + 50);
+    }
+
+    #[test]
+    fn recovery_does_not_tick_when_above_max() {
+        let mut e = economy_with_stamina(MAX_STAMINA + 50);
+        e.tick(STAMINA_RECOVERY_INTERVAL_SECS);
+        // Above cap — must stay unchanged and timer stays reset.
+        assert_eq!(e.stamina, MAX_STAMINA + 50);
+        assert_eq!(e.stamina_timer, 0.0);
+    }
+
+    #[test]
+    fn spend_stamina_succeeds_when_enough() {
+        let mut e = economy_with_stamina(5);
+        assert!(e.spend_stamina(3));
+        assert_eq!(e.stamina, 2);
+    }
+
+    #[test]
+    fn spend_stamina_fails_when_insufficient() {
+        let mut e = economy_with_stamina(2);
+        assert!(!e.spend_stamina(3));
+        assert_eq!(e.stamina, 2);
+    }
+
+    #[test]
+    fn refund_above_max_is_preserved() {
+        // Player has 150 stamina (from Gourd), spends 1, then gets refunded.
+        let mut e = economy_with_stamina(150);
+        assert!(e.spend_stamina(1));
+        assert_eq!(e.stamina, 149);
+        // Refund should restore to 150, not clamp to 100.
+        e.stamina += 1;
+        assert_eq!(e.stamina, 150);
+    }
+}
+
 /// Tag component for the coins label.
 #[derive(Component)]
 pub struct CoinsLabel;
