@@ -441,23 +441,31 @@ pub(crate) fn handle_double_stamina_toggle(
 /// Play the generic button-click sound for UI buttons that don't have their own SFX.
 ///
 /// Covers [`DoubleStaminaButton`], [`WarehouseButton`], and [`ActivityButton`].
+/// Pressing [`ActivityButton`] also transitions back to [`GameScreen::Activity`].
 pub(crate) fn handle_button_click(
     mut commands: Commands,
     game_audio: Res<GameAudio>,
+    mut next_state: ResMut<NextState<GameScreen>>,
     double_stamina_query: Query<&Interaction, (Changed<Interaction>, With<DoubleStaminaButton>)>,
     warehouse_query: Query<&Interaction, (Changed<Interaction>, With<WarehouseButton>)>,
     activity_query: Query<&Interaction, (Changed<Interaction>, With<ActivityButton>)>,
 ) {
+    let activity_pressed = activity_query.iter().any(|i| *i == Interaction::Pressed);
+
     let any_pressed = double_stamina_query
         .iter()
         .chain(warehouse_query.iter())
-        .chain(activity_query.iter())
-        .any(|i| *i == Interaction::Pressed);
+        .any(|i| *i == Interaction::Pressed)
+        || activity_pressed;
 
     if any_pressed {
         if let Some(sfx) = game_audio.get("button_click") {
             commands.spawn((AudioPlayer::new(sfx), PlaybackSettings::DESPAWN));
         }
+    }
+
+    if activity_pressed {
+        next_state.set(GameScreen::Activity);
     }
 }
 
