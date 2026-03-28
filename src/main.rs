@@ -22,13 +22,16 @@ use items::ItemDatabase;
 use orders::Orders;
 use systems::{
     animate_attract_icons, animate_jelly_click, animate_rising_stars, handle_button_click,
-    handle_cell_interaction, handle_double_stamina_toggle, handle_drag_input, handle_order_submit,
-    tick_attract_animation, tick_auto_generators, tick_economy, tick_idle_timer, tick_orders,
-    tick_star_spawners, update_cell_visuals, update_double_stamina_button, update_drag_ghost,
-    update_economy_ui, update_item_detail_bar, update_message_bar, update_order_icons,
-    update_orders_ui,
+    handle_cell_interaction, handle_double_stamina_toggle, handle_drag_input,
+    handle_enter_board_button, handle_order_submit, tick_attract_animation, tick_auto_generators,
+    tick_economy, tick_idle_timer, tick_orders, tick_star_spawners, update_cell_visuals,
+    update_double_stamina_button, update_drag_ghost, update_economy_ui, update_item_detail_bar,
+    update_message_bar, update_order_icons, update_orders_ui,
 };
-use ui::{preload_images, setup_initial_board, setup_ui};
+use ui::{
+    preload_images, setup_activity_screen, setup_board_screen, setup_initial_board,
+    teardown_activity_screen, teardown_board_screen,
+};
 
 // ── Audio ─────────────────────────────────────────────────────────────────────
 
@@ -319,6 +322,35 @@ pub(crate) struct WarehouseButton;
 #[derive(Component)]
 pub(crate) struct ActivityButton;
 
+// ── Screen state machine ───────────────────────────────────────────────────────
+
+/// Top-level game screen state.
+///
+/// `Activity` is the default/first screen (lobby).  The player navigates to
+/// `Board` by pressing the enter-game button on the activity screen.
+#[derive(States, Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub(crate) enum GameScreen {
+    /// Activity / lobby screen shown when the game first launches.
+    #[default]
+    Activity,
+    /// The main merge-puzzle board screen.
+    Board,
+}
+
+/// Marker for the root entity of the activity screen.
+/// Despawning it recursively tears down the entire activity UI.
+#[derive(Component)]
+pub(crate) struct ActivityScreenRoot;
+
+/// Marker for the root entity of the board screen.
+/// Despawning it recursively tears down the entire board UI.
+#[derive(Component)]
+pub(crate) struct BoardScreenRoot;
+
+/// Marker for the "enter board" button on the activity screen.
+#[derive(Component)]
+pub(crate) struct EnterBoardButton;
+
 /// Resource that tracks whether double-stamina mode is active.
 ///
 /// When active, non-auto-generator pieces consume 2 stamina per activation
@@ -446,11 +478,21 @@ fn main() {
     .insert_resource(DoubleStaminaMode::default())
     .init_resource::<PreloadedImages>()
     .init_resource::<GameAudio>()
+    .init_state::<GameScreen>()
     .add_systems(Startup, preload_images)
     .add_systems(Startup, setup_initial_board)
-    .add_systems(Startup, setup_ui.after(setup_initial_board))
+    .add_systems(Startup, setup_camera)
     .add_systems(Startup, setup_bgm)
-    .add_systems(Startup, setup_audio);
+    .add_systems(Startup, setup_audio)
+    // Activity screen lifecycle
+    .add_systems(OnEnter(GameScreen::Activity), setup_activity_screen)
+    .add_systems(OnExit(GameScreen::Activity), teardown_activity_screen)
+    // Board screen lifecycle
+    .add_systems(
+        OnEnter(GameScreen::Board),
+        setup_board_screen.after(setup_initial_board),
+    )
+    .add_systems(OnExit(GameScreen::Board), teardown_board_screen);
     // On WASM, resume the paused BGM on the first user interaction to work
     // around browsers' autoplay policy.
     #[cfg(target_arch = "wasm32")]
@@ -459,6 +501,14 @@ fn main() {
         // Logic systems run first; visual systems run after, ensuring change-detection
         // guards in visual systems always observe the latest game state.
         .configure_sets(Update, GameSet::Logic.before(GameSet::Visuals))
+        // Activity-screen input handling
+        .add_systems(
+            Update,
+            handle_enter_board_button
+                .in_set(GameSet::Logic)
+                .run_if(in_state(GameScreen::Activity)),
+        )
+        // Board-specific logic and visual systems — only active when board is shown
         .add_systems(
             Update,
             (
@@ -474,7 +524,8 @@ fn main() {
                 handle_double_stamina_toggle,
                 handle_button_click,
             )
-                .in_set(GameSet::Logic),
+                .in_set(GameSet::Logic)
+                .run_if(in_state(GameScreen::Board)),
         )
         .add_systems(
             Update,
@@ -491,7 +542,13 @@ fn main() {
                 animate_attract_icons.after(update_cell_visuals),
                 animate_jelly_click.after(animate_attract_icons),
             )
-                .in_set(GameSet::Visuals),
+                .in_set(GameSet::Visuals)
+                .run_if(in_state(GameScreen::Board)),
         )
         .run();
+}
+
+/// Startup system: spawn the 2D camera (once, persists across screen transitions).
+fn setup_camera(mut commands: Commands) {
+    commands.spawn(Camera2d);
 }

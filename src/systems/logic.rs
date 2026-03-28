@@ -3,9 +3,9 @@ use bevy::prelude::*;
 
 use crate::{
     ActivityButton, AutoGenCooldowns, AutoGenCounts, AutoGenTimers, DoubleStaminaButton,
-    DoubleStaminaMode, EggStorage, GameAudio, GeneratorUsesRemaining, JellyClickAnim,
-    MessageBar, JELLY_CLICK_DURATION, SECONDS_PER_MINUTE, AUTO_GEN_BATCH_LIMIT,
-    AUTO_GEN_COOLDOWN_SECS, WarehouseButton,
+    DoubleStaminaMode, EggStorage, EnterBoardButton, GameAudio, GameScreen,
+    GeneratorUsesRemaining, JellyClickAnim, MessageBar, JELLY_CLICK_DURATION,
+    SECONDS_PER_MINUTE, AUTO_GEN_BATCH_LIMIT, AUTO_GEN_COOLDOWN_SECS, WarehouseButton,
 };
 use crate::board::{Board, BoardCell, CellImage, ClickAction};
 use crate::economy::Economy;
@@ -457,6 +457,25 @@ pub(crate) fn handle_button_click(
     if any_pressed {
         if let Some(sfx) = game_audio.get("button_click") {
             commands.spawn((AudioPlayer::new(sfx), PlaybackSettings::DESPAWN));
+        }
+    }
+}
+
+/// Handle the "enter board" button on the activity screen.
+///
+/// Transitions [`GameScreen`] from `Activity` to `Board` on press.
+pub(crate) fn handle_enter_board_button(
+    query: Query<&Interaction, (Changed<Interaction>, With<EnterBoardButton>)>,
+    mut next_state: ResMut<NextState<GameScreen>>,
+    mut commands: Commands,
+    game_audio: Res<GameAudio>,
+) {
+    for interaction in &query {
+        if *interaction == Interaction::Pressed {
+            if let Some(sfx) = game_audio.get("button_click") {
+                commands.spawn((AudioPlayer::new(sfx), PlaybackSettings::DESPAWN));
+            }
+            next_state.set(GameScreen::Board);
         }
     }
 }
