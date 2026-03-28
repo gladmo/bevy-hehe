@@ -3,10 +3,11 @@ use bevy::prelude::*;
 
 use crate::{
     ActivityButton, AutoGenCooldowns, AutoGenCounts, AutoGenTimers, DoubleStaminaButton,
-    DoubleStaminaMode, EggStorage, GameAudio, GeneratorUsesRemaining, MessageBar,
-    SECONDS_PER_MINUTE, AUTO_GEN_BATCH_LIMIT, AUTO_GEN_COOLDOWN_SECS, WarehouseButton,
+    DoubleStaminaMode, EggStorage, GameAudio, GeneratorUsesRemaining, JellyClickAnim,
+    MessageBar, JELLY_CLICK_DURATION, SECONDS_PER_MINUTE, AUTO_GEN_BATCH_LIMIT,
+    AUTO_GEN_COOLDOWN_SECS, WarehouseButton,
 };
-use crate::board::{Board, BoardCell, ClickAction};
+use crate::board::{Board, BoardCell, CellImage, ClickAction};
 use crate::economy::Economy;
 use crate::items::types::ChainType;
 use crate::items::ItemDatabase;
@@ -145,11 +146,25 @@ pub(crate) fn handle_cell_interaction(
     double_stamina: Res<DoubleStaminaMode>,
     game_audio: Res<GameAudio>,
     interaction_query: Query<(&Interaction, &BoardCell), Changed<Interaction>>,
+    cell_image_query: Query<(Entity, &CellImage)>,
 ) {
     for (interaction, cell) in &interaction_query {
         if *interaction != Interaction::Pressed {
             continue;
         }
+
+        // Trigger jelly-bounce animation on the piece icon for any click.
+        // The board has at most 36 cells, so a linear scan is inexpensive.
+        for (img_entity, img) in &cell_image_query {
+            if img.index == cell.index {
+                commands.entity(img_entity).insert(JellyClickAnim {
+                    elapsed: 0.0,
+                    duration: JELLY_CLICK_DURATION,
+                });
+                break;
+            }
+        }
+
         let action = board.handle_click(cell.index, &db);
         match action {
             ClickAction::Merged { result, .. } => {

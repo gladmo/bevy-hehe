@@ -12,7 +12,7 @@ mod logic;
 mod visuals;
 
 pub(crate) use animation::{
-    animate_attract_icons, animate_rising_stars, tick_attract_animation,
+    animate_attract_icons, animate_jelly_click, animate_rising_stars, tick_attract_animation,
     tick_idle_timer, tick_star_spawners,
 };
 pub(crate) use drag::{handle_drag_input, update_drag_ghost};
