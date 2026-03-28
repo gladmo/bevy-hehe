@@ -21,11 +21,12 @@ use economy::Economy;
 use items::ItemDatabase;
 use orders::Orders;
 use systems::{
-    animate_attract_icons, animate_rising_stars, handle_button_click, handle_cell_interaction,
-    handle_double_stamina_toggle, handle_drag_input, handle_order_submit, tick_attract_animation,
-    tick_auto_generators, tick_economy, tick_idle_timer, tick_orders, tick_star_spawners,
-    update_cell_visuals, update_double_stamina_button, update_drag_ghost, update_economy_ui,
-    update_item_detail_bar, update_message_bar, update_order_icons, update_orders_ui,
+    animate_attract_icons, animate_jelly_click, animate_rising_stars, handle_button_click,
+    handle_cell_interaction, handle_double_stamina_toggle, handle_drag_input, handle_order_submit,
+    tick_attract_animation, tick_auto_generators, tick_economy, tick_idle_timer, tick_orders,
+    tick_star_spawners, update_cell_visuals, update_double_stamina_button, update_drag_ghost,
+    update_economy_ui, update_item_detail_bar, update_message_bar, update_order_icons,
+    update_orders_ui,
 };
 use ui::{preload_images, setup_initial_board, setup_ui};
 
@@ -279,6 +280,22 @@ pub(crate) struct RisingStar {
 /// Interval in seconds between rising-star spawns on auto-generator cells.
 pub(crate) const STAR_SPAWN_INTERVAL: f32 = 2.0;
 
+// ── Jelly-click animation ─────────────────────────────────────────────────────
+
+/// Component added to a [`crate::board::CellImage`] entity when the player
+/// clicks its cell.  Drives a damped-spring squash-and-stretch animation that
+/// gives the piece a jelly-like bounce feeling.
+#[derive(Component, Debug, Clone)]
+pub(crate) struct JellyClickAnim {
+    /// Elapsed time since the animation started (seconds).
+    pub(crate) elapsed: f32,
+    /// Total duration of the jelly animation (seconds).
+    pub(crate) duration: f32,
+}
+
+/// Duration of the jelly-click animation in seconds.
+pub(crate) const JELLY_CLICK_DURATION: f32 = 0.55;
+
 // ── Attract animation ─────────────────────────────────────────────────────────
 
 /// Seconds of user inactivity before the attract animation starts.
@@ -472,6 +489,7 @@ fn main() {
                 update_double_stamina_button,
                 animate_rising_stars,
                 animate_attract_icons.after(update_cell_visuals),
+                animate_jelly_click.after(animate_attract_icons),
             )
                 .in_set(GameSet::Visuals),
         )

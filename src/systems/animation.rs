@@ -2,7 +2,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    AttractAnimState, AttractIconAnim, IdleTimer, RisingStar, StarSpawnTimer,
+    AttractAnimState, AttractIconAnim, IdleTimer, JellyClickAnim, RisingStar, StarSpawnTimer,
     ATTRACT_IDLE_SECS, ATTRACT_ICON_MAX_MOVE_X, ATTRACT_ICON_MAX_MOVE_Y,
     ATTRACT_MAX_DURATION, ATTRACT_MIN_DURATION, ATTRACT_PAUSE_SECS,
     STAR_SPAWN_INTERVAL,
@@ -297,5 +297,49 @@ pub(crate) fn animate_attract_icons(
             Transform::IDENTITY
         };
         transform.set_if_neq(new_transform);
+    }
+}
+
+/// Animate a jelly-bounce (squash-and-stretch) effect on pieces that were just clicked.
+///
+/// Uses a damped-spring oscillation: the piece squashes horizontally and stretches
+/// vertically on impact, then bounces back with diminishing amplitude — giving a
+/// fruit-jelly feel.  Runs in [`GameSet::Visuals`] after [`animate_attract_icons`]
+/// so the jelly transform is always the final value written this frame.
+pub(crate) fn animate_jelly_click(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut JellyClickAnim, &mut Transform), With<CellImage>>,
+) {
+    for (entity, mut anim, mut transform) in &mut query {
+        anim.elapsed += time.delta_secs();
+
+        if anim.elapsed >= anim.duration {
+            commands.entity(entity).remove::<JellyClickAnim>();
+            transform.set_if_neq(Transform::IDENTITY);
+            continue;
+        }
+
+        // Normalised time [0, 1].
+        let t = anim.elapsed / anim.duration;
+
+        // Damped oscillation: starts at 0, peaks quickly, then decays.
+        // Envelope × sine wave:  A · e^(−k·t) · sin(ω·t)
+        //   A = 0.35  — peak amplitude (35 % squash/stretch)
+        //   k = 7     — decay rate (fully settled well before t=1)
+        //   ω = 3π    — ~1.5 oscillation cycles over the normalised interval
+        let jelly = 0.35 * (-7.0 * t).exp() * (3.0 * std::f32::consts::PI * t).sin();
+
+        // Squash-and-stretch: scale_x and scale_y move in opposite directions by
+        // the same delta so their product is (1+jelly)(1−jelly) = 1−jelly².  For
+        // the amplitude used here (≤0.35) this deviates less than 13 % from exact
+        // area preservation, which is imperceptible and keeps the formula simple.
+        let scale_x = 1.0 + jelly;       // grows when jelly > 0
+        let scale_y = 1.0 - jelly;       // shrinks when jelly > 0
+
+        transform.set_if_neq(Transform {
+            scale: Vec3::new(scale_x, scale_y, 1.0),
+            ..default()
+        });
     }
 }
