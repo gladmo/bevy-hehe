@@ -65,7 +65,7 @@ jobs:
 
       - name: Embed WASM file size into index.html
         run: |
-          WASM_SIZE=$(wc -c < "./out/hehe.wasm" | tr -d ' ')
+          WASM_SIZE=$(wc -c < "./out/hehe_bg.wasm" | tr -d ' ')
           sed \
             -e "s/{{WASM_SIZE}}/${WASM_SIZE}/" \
             ./out/index.html > ./out/index.html.tmp
