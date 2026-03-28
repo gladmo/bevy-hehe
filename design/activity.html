@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Ancient Courtyard Game Interface</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <style data-purpose="custom-fonts">
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Noto Serif SC', serif;
+        }
+    </style>
+    <style data-purpose="game-layout">
+        .game-container {
+            background-color: #FFFFFF;
+            background-size: cover;
+            background-position: center;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden
+        }
+
+        /* Icon styling */
+        .game-icon-bg {
+            background: radial-gradient(circle, #fffdf0 0%, #ffe4b5 100%);
+            border: 2px solid #d2b48c;
+            border-radius: 50%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2)
+        }
+
+        .timer-badge {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #d2b48c;
+            color: #8b4513;
+            font-size: 0.75rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 9999px;
+            margin-top: -10px;
+            z-index: 10;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1)
+        }
+
+        .notification-dot {
+            background-color: #ef4444;
+            color: white;
+            font-size: 0.6rem;
+            width: 1rem;
+            height: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            position: absolute;
+            top: 0;
+            right: 0;
+            border: 1px solid white
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 flex justify-center items-center h-screen m-0">
+    <!-- BEGIN: Game Container -->
+    <main class="game-container max-w-[430px] mx-auto shadow-2xl relative" data-purpose="main-game-screen">
+        <!-- BEGIN: Top HUD -->
+        <header class="absolute top-0 left-0 w-full p-4 flex justify-start items-center gap-3 z-50 pointer-events-none"
+            data-purpose="top-hud"><!-- User Level -->
+            <div class="relative pointer-events-auto flex-shrink-0">
+                <div
+                    class="w-14 h-14 rounded-full bg-white border-2 border-[#d2b48c] flex items-center justify-center shadow-lg relative z-10">
+                    <span class="text-xl font-bold text-gray-800" style="">42</span>
+                </div>
+            </div>
+            <!-- Currencies Container -->
+            <div class="flex items-center gap-1.5 pointer-events-auto">
+                <!-- Energy -->
+                <div
+                    class="bg-black/60 backdrop-blur-md rounded-full px-2 h-7 flex items-center gap-1 border border-emerald-500/40 text-white font-bold text-[11px] min-w-[95px] justify-between shadow-inner">
+                    <div class="flex items-center gap-1">
+                        <div class="w-5 h-5 rounded-full bg-emerald-900/80 flex items-center justify-center border border-emerald-400/30 text-[10px]"
+                            style="">⚡</div>
+                        <span class="" style="">24</span>
+                    </div>
+                    <button
+                        class="bg-teal-500/90 rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm"
+                        style="">+</button>
+                </div>
+                <!-- Coins -->
+                <div
+                    class="bg-black/60 backdrop-blur-md rounded-full px-2 h-7 flex items-center gap-1 border border-amber-500/40 text-white font-bold text-[11px] min-w-[95px] shadow-inner">
+                    <div class="w-5 h-5 rounded-full bg-amber-900/80 flex items-center justify-center border border-amber-400/30 text-[10px]"
+                        style="">🪙</div>
+                    <span class="flex-grow text-center pr-2" style="">2367</span>
+                </div>
+                <!-- Gems -->
+                <div
+                    class="bg-black/60 backdrop-blur-md rounded-full px-2 h-7 flex items-center gap-1 border border-rose-500/40 text-white font-bold text-[11px] min-w-[95px] justify-between shadow-inner">
+                    <div class="flex items-center gap-1">
+                        <div class="w-5 h-5 rounded-full bg-rose-900/80 flex items-center justify-center border border-rose-400/30 text-[10px]"
+                            style="">💎</div>
+                        <span class="" style="">58</span>
+                    </div>
+                    <button
+                        class="bg-teal-500/90 rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow-sm"
+                        style="">+</button>
+                </div>
+            </div>
+            <!-- Settings/Menu -->
+            <div class="ml-auto pointer-events-auto">
+                <button
+                    class="bg-black/40 backdrop-blur-md rounded-full px-3 py-1 text-white border border-white/20 shadow-sm text-xs"
+                    style="">
+                    •••
+                </button>
+            </div>
+        </header>
+        <!-- END: Top HUD -->
+        <!-- BEGIN: Top Right Floating Buttons -->
+        <div class="absolute top-20 right-4 flex gap-3 z-40" data-purpose="top-right-buttons">
+            <button class="w-10 h-10 game-icon-bg flex items-center justify-center hover:scale-105 transition-transform"
+                style="">
+                <span class="text-xl" style="">👁️</span>
+            </button>
+            <button class="w-10 h-10 game-icon-bg flex items-center justify-center hover:scale-105 transition-transform"
+                style="">
+                <span class="text-xl text-red-500" style="">🎮</span>
+            </button>
+            <button class="w-10 h-10 game-icon-bg flex items-center justify-center hover:scale-105 transition-transform"
+                style="">
+                <span class="text-xl text-orange-500" style="">📜</span>
+            </button>
+            <button
+                class="w-12 h-12 game-icon-bg flex items-center justify-center hover:scale-105 transition-transform relative"
+                style="">
+                <img alt="Bell" class="w-8 h-8 rounded-full"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIyPqoMcAyzDTqkLPMg1BHJvAjmfdNYbiDWPWn-cX1S46gV_SNNXtQr0BsthFfs094LqlOGQ2W5KmKFJ9RCnLeWhTH163Ia5OGqB-xDU8mcz3Qt3S0mmclHU70gYsz5yK2BgniNz3TIqexcPkkjiCqWF3JQT1xyCZeyD9Ua0Uomr0nucomzKNuTl7HBTfTC24eMpEp_ChdgVwaS6To-BPG_GLhlpb8h32ScNaoT7wR1QdGLTzh3zzLvVmSSJ2Uz_eQy1Iptqx5Xgo"
+                    style="">
+            </button>
+        </div>
+        <!-- END: Top Right Floating Buttons -->
+        <!-- BEGIN: Left Column Icons -->
+        <aside class="absolute top-32 left-2 flex flex-col gap-6 z-40 items-center" data-purpose="left-column-icons">
+            <!-- Icon 1 -->
+            <div class="relative flex flex-col items-center">
+                <button class="w-16 h-16 game-icon-bg relative hover:scale-105 transition-transform" style="">
+                    <img alt="Event" class="w-full h-full object-contain p-1"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQzLWxEkLHKUFA_L6YgRJ7sOffECIPVTkqilfAtX3e5iBk1urJMi7WJxmpXgMC0PXaC2I843Jec9bqgq8BXHskg3j-XLSOK6sZnUJGTmvk7JehG-sWzaPiGjpdGKVyZh4a4O3ENtdSENquG5DFvWxjqDu_xhpLVAnqhyCuGsFXc29LRVdyf3PsKXGe4nqf6ubQlzx5P2B_ltHzMACPy9TLv6TDeJedXbnjdFCSof6OnqhuQW7Jq8FHUOU0zUbsbNXlzpzQbLw9mxc"
+                        style="">
+                    <div class="notification-dot" style="">!</div>
+                </button>
+                <span class="timer-badge" style="">13天12时</span>
+            </div>
+            <!-- Icon 2 -->
+            <div class="relative flex flex-col items-center">
+                <button class="w-16 h-16 game-icon-bg relative hover:scale-105 transition-transform" style="">
+                    <img alt="Box" class="w-full h-full object-contain p-1"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9V-1aBn2LDngEKhBpFzqqW0hNbKSmR4pw9KQ3vPUevCU0Rci2rl1luAf6UF3CA_nNwgfFd13XBEJh4gnD_jCsbSuj21E9gqU6pXYObWZ8_e9h8qHg1Y3teqVv6qZpmqengYtDm9tR7rPMUfY3C6_mZYjzcYjs-DaqItspoVB4Y_buemV2gRTAxBI-R35Rz068mkkp7NkTqKFljuoA-01Y8e4yTeRui_UBNYkcIsiVbuvqQrON3_SEVHhstsljpCVrhl3xF-_q4a4"
+                        style="">
+                </button>
+                <span class="timer-badge" style="">6天11时</span>
+            </div>
+            <!-- Icon 3 -->
+            <div class="relative flex flex-col items-center">
+                <button class="w-16 h-16 game-icon-bg relative hover:scale-105 transition-transform" style="">
+                    <img alt="House" class="w-full h-full object-contain p-1"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAGbY54v_5Dr11_7-3NpPHmvxQbG8SOtRXi3YGnVow7mWH0o7Zf31pUUYJvswkBC-mOKhcqyFad8Yj9yiTirQrVLCeFfxSpzB-sX_UFZFuwRzS0g7AiJqKdzNJwFIZ6P7Lp2--W1zXc6zWfdCotQZSIc-8bJl-c0iAdJP9WzzdM5J0t_vTDnw7WDEWE1lotsE6CaVA1MpicUqpajVOCadnKmpQQ96eubCCHgQubGQHf1tFexSx23XUOU7JI6EvS68bjGoNtMWJRaU"
+                        style="">
+                </button>
+                <span class="timer-badge" style="">1天19时</span>
+            </div>
+            <!-- Icon 4 -->
+            <div class="relative flex flex-col items-center">
+                <button class="w-16 h-16 game-icon-bg relative hover:scale-105 transition-transform" style="">
+                    <img alt="Bag" class="w-full h-full object-contain p-1"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWdY9Wh79tmJ6t4P_CNjmZcx6l1_595f_mcGakrH0UkgkPbv7OcaKpPnE4TXSC-MVkpqQRK3p_dC3BE3xT9bPBpp3lZN3muAyXng-sY2NEWrD37N-ZNUiQ44iugidPIfcNaEKjv2ecoeKArMB2IunRJ-moscQfInuULVPshnxOOc0ghnBrkeEOS8L6_mZcrz6RV30RMktJdp5vR3ez6eR8CxGSU1a1XsOsrpcJ7taD7gwru7mGYCPqiV_M-7s7AV-5jIDupX_dbjc"
+                        style="">
+                </button>
+                <span class="timer-badge" style="">免费好礼</span>
+            </div>
+            <!-- Icon 5 -->
+            <div class="relative flex flex-col items-center">
+                <button class="w-16 h-16 game-icon-bg relative hover:scale-105 transition-transform" style="">
+                    <img alt="Cat" class="w-full h-full object-contain p-1"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBAOqbB6TR1sMulqKM54O1ZjDokPegYk82mEp-RnA6ddW00NI8P3BF76zrovIys4sOJxcuo9Goy8Eo2h1O7wBBd24uSPnO90kaa-0cz041vPYmmsV-AEPZ6Kqpt-9_sU8hwOtcOby-261oVTOkOaZw6EuYCpc_-nsEMitCu0AZlkqSbT3Nzf_TAOJqcP6NseIcOsyusw4u5rNjTnpsYWsveKxaTrlNTI085CruIvv851Pz6gI6UNAA7TiITrDtbKXMIPcnAM1B65vY"
+                        style="">
+                </button>
+                <span class="timer-badge" style="">1天11时</span>
+            </div>
+        </aside>
+        <!-- END: Left Column Icons -->
+        <!-- BEGIN: Right Column Icons -->
+        <aside class="absolute right-2 flex flex-col gap-6 z-40 items-center top-32" data-purpose="right-column-icons">
+            <!-- Icon 1 -->
+            <!-- Icon 2 -->
+            <div class="relative flex flex-col items-center">
+                <button class="w-16 h-16 game-icon-bg relative hover:scale-105 transition-transform" style="">
+                    <img alt="Fox" class="w-full h-full object-contain p-1"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLju3xNcqJ85xGVNrWc9iRzC9QNKWk4hxMCYFDFcBbWXRhAm9XGwe3LKl93xBmwvzY89unJ60JhGocniDlEd0eVhcBG7Z-OWUhQb_CiVZXPOiuSWwZ3N4riQJRXGQ9S9H6Wbi-xoL-xQbKe0FcG4g5YgrYVTEm4rp2OdCgK2thTfacS5Szx37sLjK7NEPve5fOTwusPYTVR8V-vS2aEjKFMTeQs41P5bZpwfXuDwEOjPo1FWSwsmud_KMgwj0B5MeWNQUAHRl2j5o"
+                        style="">
+                </button>
+                <span class="timer-badge" style="">6天11时</span>
+            </div>
+            <!-- Icon 3 -->
+            <div class="relative flex flex-col items-center">
+                <button class="w-16 h-16 game-icon-bg relative hover:scale-105 transition-transform" style="">
+                    <img alt="Gift" class="w-full h-full object-contain p-1"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBD-PfMK2IBIGB2Ohq4mptc8eWv0wHyoY5gO4HQp8mKifpAPdvyhpLD9OdOCIVpVkAK8xwayaJ_zldskqk5TuupdsONzNesR73RIhf5ei_XXWQfm7BaePncTpjSFgeBE76dy6oowmUR2kqPBjK0FyhD_B4WEbrDdOaCtH_Gy7T2iyYXJ2EBsLcbXspxUN9kAbeM42OI1p-jiadRLimDTWM5UG6RFWioBps4MWGumdcTVNlYAoN50_T2CX4RXBLsEjp1lwbfUywc8UQ"
+                        style="">
+                </button>
+                <span class="timer-badge" style="">6天9时</span>
+            </div>
+            <!-- Icon 4 -->
+            <div class="relative flex flex-col items-center">
+                <button class="w-16 h-16 game-icon-bg relative hover:scale-105 transition-transform" style="">
+                    <img alt="Chest" class="w-full h-full object-contain p-1"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwVSxK7-ZYC8fT2DnvIjHl5aaivE66yEYSywqAqQhMGLZhvkWGGGZVJCqHRe6pr1vBOOdXwu2-pn4OTFH6BMCVqD13M8gToAfsuOH9bafB-fdc4YMpAfjS1XuSxBnK2vWLTiAPEWFFqBpWTHxk6UpnUvZcuWEGAeISmo2DF9vVXssx173W7Sp0O3H2wBwhmwKgv75OGbLSCbIpLxnP6cqAbIJcw0dBgIt6FQICys6GGheDGJOHCRSOS_QihGgcl0ZamTzGSzcO6FI"
+                        style="">
+                </button>
+                <span class="timer-badge" style="">3时13分</span>
+            </div>
+        </aside>
+        <!-- END: Right Column Icons -->
+        <!-- BEGIN: Bottom Nav / Actions -->
+        <nav class="absolute bottom-4 left-0 w-full flex justify-between px-6 z-50 pointer-events-none"
+            data-purpose="bottom-navigation">
+            <div class="flex gap-4 pointer-events-auto">
+                <button class="w-20 h-20 game-icon-bg relative hover:scale-105 transition-transform" style="">
+                    <img alt="Book" class="w-full h-full object-contain p-2"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSDWR6vjlMwzvt1axKKPBWCftDg2MCZlLgNe8NB9gWydqOnPIsZ3PG0EeszfyYr2v3zl86sMsU5H6Pw9TuU8UIIE0dobkDlvelx3Lp-PEFlAycHRnoeu6xPi83d_XO4sidiajXxB4laNbOdL_9Cv-hmB7yMS7st9TA_lkbTgjTGvPZ6gi8nOo1NkbfBFBB9y4ZX1VMR4b7CXcQvqYSkGqWObUj0qCRb831AT0siloJfMCEywdZT8mIwFfsci3PrCJfaKtStbQxg0g"
+                        style="">
+                    <div class="notification-dot" style="">!</div>
+                </button>
+            </div>
+            <div class="flex gap-4 pointer-events-auto items-end">
+                <button class="w-24 h-24 game-icon-bg relative hover:scale-105 transition-transform" style="">
+                    <img alt="Teapot" class="w-full h-full object-contain p-2"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0SweB68a0hc91x0rFl5YwX0AshIlzNkX4z1W5GiHhK1Q5f-Am7c84H8d0WrRbAxIpIMzJPy5vJXuV0ud6Vcn0d06tbQl_-wASPZiwPBE20AZXMSIEAzm80VB1vB_HVXYDPREAsZYDWtatqnqclN7fiflFW8cw9aiZy-t3tJaADQQpqdc0PUCvLvYSrgA-r3KziZkvJL2mDE9-BdKpyxM2c7UBUGEw7ijgWm8IgzrXxKlGi7xsqnTpBPY1AECdASBrimoVsD1cL4Y"
+                        style="">
+                </button>
+            </div>
+        </nav>
+        <!-- END: Bottom Nav / Actions -->
+    </main>
+    <!-- END: Game Container -->
+</body>
+
+</html>
