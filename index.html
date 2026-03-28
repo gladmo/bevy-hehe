@@ -5,6 +5,72 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>合合游戏 (HeHe Game)</title>
+
+  <!--
+    音频上下文解锁脚本 (Audio Context Unlock)
+    ───────────────────────────────────────────────────────────────────────────
+    浏览器的自动播放策略（Autoplay Policy）会将所有 Web Audio API AudioContext
+    初始化为"suspended"（暂停）状态，直到页面收到用户手势（点击、按键或触摸）。
+
+    Bevy 在 WASM 下通过 rodio crate 内部创建 AudioContext，外部代码无法直接访问
+    该实例。本脚本在 WASM 模块加载之前拦截 AudioContext 构造函数，捕获所有被创建
+    的实例（包括 Bevy/rodio 内部创建的实例），在用户首次交互时对所有实例同步调用
+    resume()。这是跨浏览器最可靠的解决方案，因为 resume() 必须在同步的用户事件
+    处理器内调用，而不能在 requestAnimationFrame 回调（Bevy ECS 的运行时机）中
+    调用。
+  -->
+  <script>
+    (function () {
+      var OrigAudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!OrigAudioContext) return;
+
+      var captured = [];
+      var eventTypes = ["click", "keydown", "touchstart", "pointerdown"];
+
+      // Patch the constructor so every AudioContext created after this point
+      // (including the one Bevy/rodio creates internally) is captured.
+      function PatchedAudioContext(options) {
+        var ctx = new OrigAudioContext(options);
+        captured.push(ctx);
+        return ctx;
+      }
+      PatchedAudioContext.prototype = OrigAudioContext.prototype;
+
+      window.AudioContext = PatchedAudioContext;
+      if (window.webkitAudioContext) {
+        window.webkitAudioContext = PatchedAudioContext;
+      }
+
+      // Resume all captured contexts synchronously inside the user-gesture
+      // handler.  This is the only reliable way to satisfy the browser's
+      // autoplay policy across Chrome, Firefox, and Safari.
+      function resumeAll() {
+        // Drop closed contexts to avoid holding stale references.
+        captured = captured.filter(function (ctx) {
+          return ctx.state !== "closed";
+        });
+
+        captured.forEach(function (ctx) {
+          if (ctx.state === "suspended") {
+            ctx.resume();
+          }
+        });
+
+        // Once every captured context is running, remove the listeners.
+        if (captured.length > 0 &&
+            captured.every(function (ctx) { return ctx.state === "running"; })) {
+          eventTypes.forEach(function (type) {
+            document.removeEventListener(type, resumeAll, true);
+          });
+        }
+      }
+
+      eventTypes.forEach(function (type) {
+        document.addEventListener(type, resumeAll, { capture: true, passive: true });
+      });
+    })();
+  </script>
+
   <style>
     * {
       margin: 0;
