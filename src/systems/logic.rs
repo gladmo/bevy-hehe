@@ -233,9 +233,9 @@ pub(crate) fn handle_cell_interaction(
                                 }
                             }
                             if placed == 0 {
-                                // Nothing placed — refund stamina
-                                economy.stamina =
-                                    (economy.stamina + stamina_cost).min(economy.max_stamina);
+                                // Nothing placed — refund stamina (no cap: stamina may legitimately
+                                // exceed max_stamina via uncapped sources such as gourd tools).
+                                economy.stamina += stamina_cost;
                                 message.set("棋盘已满，无法生成！");
                             } else {
                                 // Determine whether this generator should be consumed.
