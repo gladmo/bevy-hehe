@@ -54,7 +54,7 @@ pub(crate) fn setup_ui(
     commands.spawn(Camera2d);
     orders.fill_orders(&db);
 
-    let font: Handle<Font> = asset_server.load("fonts/SourceHanSansSC-Medium.otf");
+    let font: Handle<Font> = asset_server.load("fonts/SourceHanSansSC-Regular.ttf");
 
     // Root — full viewport, column layout
     commands

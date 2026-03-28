@@ -26,7 +26,7 @@ pub(crate) fn tick_star_spawners(
     }
     timer.0 -= STAR_SPAWN_INTERVAL;
 
-    let font: Handle<Font> = asset_server.load("fonts/SourceHanSansSC-Medium.otf");
+    let font: Handle<Font> = asset_server.load("fonts/SourceHanSansSC-Regular.ttf");
 
     for (entity, cell) in &cell_query {
         let is_auto_gen = board.cells[cell.index]
