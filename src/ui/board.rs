@@ -11,11 +11,12 @@ use crate::items::ItemDatabase;
 use crate::orders::{OrderItemIcon, OrderPanel, OrderSubmitButton, Orders};
 use crate::{
     ActivityButton, BoardScreenRoot, DetailHint, DetailIcon, DetailName,
-    DoubleStaminaButton, DoubleStaminaLabel, DragGhost, MessageLabel,
-    PreloadedImages, SubmitBtn, WarehouseButton, ACCENT, ACCENT_GREEN, BOARD_BG, CELL_EMPTY,
+    DragGhost, EnergyX1Button, EnergyX2Button,
+    MessageLabel, PreloadedImages, SubmitBtn, WarehouseButton, ACCENT, BOARD_BG, CELL_EMPTY,
     CELL_EMPTY_ALT, DETAIL_BAR_BG, DETAIL_BAR_H, ORDER_BG, ORDER_SLOT_BG, OVERLAY_ALPHA,
-    TEXT_MAIN, TEXT_MUTED, TOP_BAR_BG, TOP_BAR_H,
+    TEXT_MAIN, TEXT_MUTED, TOP_BAR_BG,
 };
+use super::spawn_hud_row;
 
 /// Height of the horizontal order row at the top of the content area.
 pub(crate) const ORDER_ROW_H: f32 = 88.0;
@@ -73,6 +74,7 @@ pub(crate) fn setup_board_screen(
     let font: Handle<Font> = asset_server.load("fonts/SourceHanSansSC-Regular.ttf");
 
     // Root — full viewport, column layout
+    let mut hud_handles = None;
     commands
         .spawn((
             Node {
@@ -84,11 +86,20 @@ pub(crate) fn setup_board_screen(
             BoardScreenRoot,
         ))
         .with_children(|root| {
-            spawn_top_bar(root, &font);
+            hud_handles = Some(spawn_top_bar(root, &font, &asset_server));
             spawn_order_row(root, &font);
             spawn_board_grid(root, &asset_server);
             spawn_bottom_bar(root, &font);
         });
+
+    // Insert label components on the HUD text nodes so visual systems can
+    // update them with live economy values.
+    if let Some(handles) = hud_handles {
+        commands.entity(handles.level_text).insert(LevelLabel);
+        commands.entity(handles.stamina_text).insert(StaminaLabel);
+        commands.entity(handles.coins_text).insert(CoinsLabel);
+        commands.entity(handles.gems_text).insert(GemsLabel);
+    }
 
     // Drag ghost — root-level absolute node that floats above all other UI.
     // `Pickable::IGNORE` ensures it never blocks pointer events on cells below it.
@@ -120,127 +131,118 @@ pub(crate) fn teardown_board_screen(
     }
 }
 
-// ── Top bar ───────────────────────────────────────────────────────────────────
+// ── Top bar (HUD row 1 + action row 2) ───────────────────────────────────────
 
-fn spawn_top_bar(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
+/// Spawns the two-row board HUD.
+///
+/// Row 1 – level badge + stamina / coins / gems pills (activity-screen style).
+/// Row 2 – energy-multiplier buttons (×1 / ×2) + shop button.
+///
+/// Returns [`HudRowHandles`] so the caller can insert live-update label
+/// components (`LevelLabel`, `StaminaLabel`, etc.) on the returned text nodes.
+fn spawn_top_bar(
+    root: &mut ChildSpawnerCommands,
+    font: &Handle<Font>,
+    asset_server: &AssetServer,
+) -> super::HudRowHandles {
+    // Row 1: shared activity-style HUD
+    let handles = spawn_hud_row(root, font, asset_server, "100/100", "0", "0", "1");
+
+    // Row 2: energy multiplier buttons + shop
+    let energy1: Handle<Image> =
+        asset_server.load("images/hud/farm_chessboard_img_energy_1.png");
+    let energy2: Handle<Image> =
+        asset_server.load("images/hud/farm_chessboard_img_energy_2.png");
+    let shop_icon: Handle<Image> = asset_server.load("images/hud/main_icon_shop.png");
+
     root.spawn((
         Node {
             width: percent(100.0),
-            height: px(TOP_BAR_H),
             flex_direction: FlexDirection::Row,
             align_items: AlignItems::Center,
-            justify_content: JustifyContent::SpaceBetween,
-            padding: UiRect::axes(px(20.0), px(8.0)),
+            justify_content: JustifyContent::FlexEnd,
+            column_gap: px(8.0),
+            padding: UiRect::axes(px(12.0), px(4.0)),
             border: UiRect::bottom(px(2.0)),
             ..default()
         },
         BackgroundColor(TOP_BAR_BG),
         BorderColor::all(Color::srgb(0.35, 0.28, 0.18)),
     ))
-    .with_children(|bar| {
-        // Center: Stats row
-        bar.spawn(Node {
-            flex_direction: FlexDirection::Row,
-            align_items: AlignItems::Center,
-            column_gap: px(24.0),
-            ..default()
-        })
-        .with_children(|stats| {
-            spawn_stat_card(stats, "等级", LevelLabel, "1", TEXT_MAIN, font);
-            spawn_stat_card(stats, "体力", StaminaLabel, "100/100", ACCENT_GREEN, font);
-            spawn_stat_card(
-                stats,
-                "金币",
-                CoinsLabel,
-                "0",
-                Color::srgb(0.95, 0.80, 0.25),
-                font,
-            );
-            spawn_stat_card(
-                stats,
-                "红宝石",
-                GemsLabel,
-                "0",
-                Color::srgb(0.55, 0.75, 0.95),
-                font,
-            );
-        });
-
-        // Right: double-stamina toggle button (top-right corner)
-        bar.spawn((
+    .with_children(|row| {
+        // ×1 energy button (active by default)
+        row.spawn((
             Button,
             Node {
-                width: px(100.0),
-                height: px(44.0),
+                width: px(40.0),
+                height: px(40.0),
+                border_radius: BorderRadius::all(px(8.0)),
+                border: UiRect::all(px(1.0)),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.20, 0.16, 0.10)),
+            BorderColor::all(Color::srgb(0.88, 0.50, 0.20)), // active by default
+            EnergyX1Button,
+        ))
+        .with_children(|btn| {
+            btn.spawn((
+                Node { width: px(28.0), height: px(28.0), ..default() },
+                ImageNode::new(energy1),
+                Pickable::IGNORE,
+            ));
+        });
+
+        // ×2 energy button (inactive by default)
+        row.spawn((
+            Button,
+            Node {
+                width: px(40.0),
+                height: px(40.0),
+                border_radius: BorderRadius::all(px(8.0)),
                 border: UiRect::all(px(1.0)),
-                border_radius: BorderRadius::all(px(6.0)),
-                flex_shrink: 0.0,
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
                 ..default()
             },
             BackgroundColor(Color::srgb(0.20, 0.16, 0.10)),
             BorderColor::all(Color::srgb(0.40, 0.32, 0.20)),
-            DoubleStaminaButton,
+            EnergyX2Button,
         ))
         .with_children(|btn| {
             btn.spawn((
-                Text::new("×1 体力"),
-                TextFont {
-                    font: font.clone(),
-                    font_size: 13.0,
-                    ..default()
-                },
-                TextColor(TEXT_MUTED),
-                DoubleStaminaLabel,
+                Node { width: px(28.0), height: px(28.0), ..default() },
+                ImageNode::new(energy2),
+                Pickable::IGNORE,
+            ));
+        });
+
+        // Shop button (no interaction required)
+        row.spawn((
+            Button,
+            Node {
+                width: px(40.0),
+                height: px(40.0),
+                border_radius: BorderRadius::all(px(8.0)),
+                border: UiRect::all(px(1.0)),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.50)),
+            BorderColor::all(Color::srgba(1.0, 1.0, 1.0, 0.20)),
+        ))
+        .with_children(|btn| {
+            btn.spawn((
+                Node { width: px(28.0), height: px(28.0), ..default() },
+                ImageNode::new(shop_icon),
+                Pickable::IGNORE,
             ));
         });
     });
-}
 
-fn spawn_stat_card<M: Component>(
-    bar: &mut ChildSpawnerCommands,
-    label: &str,
-    marker: M,
-    initial: &str,
-    value_color: Color,
-    font: &Handle<Font>,
-) {
-    bar.spawn((
-        Node {
-            flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Center,
-            padding: UiRect::axes(px(10.0), px(4.0)),
-            border: UiRect::all(px(1.0)),
-            border_radius: BorderRadius::all(px(6.0)),
-            row_gap: px(2.0),
-            min_width: px(70.0),
-            ..default()
-        },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, OVERLAY_ALPHA)),
-        BorderColor::all(Color::srgb(0.30, 0.24, 0.16)),
-    ))
-    .with_children(|card| {
-        card.spawn((
-            Text::new(label),
-            TextFont {
-                font: font.clone(),
-                font_size: 11.0,
-                ..default()
-            },
-            TextColor(TEXT_MUTED),
-        ));
-        card.spawn((
-            Text::new(initial),
-            TextFont {
-                font: font.clone(),
-                font_size: 16.0,
-                ..default()
-            },
-            TextColor(value_color),
-            marker,
-        ));
-    });
+    handles
 }
 
 // ── Order row (top, horizontal scroll) ───────────────────────────────────────

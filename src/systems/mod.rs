@@ -17,9 +17,10 @@ pub(crate) use animation::{
 };
 pub(crate) use drag::{handle_drag_input, update_drag_ghost};
 pub(crate) use logic::{
-    handle_button_click, handle_cell_interaction, handle_double_stamina_toggle,
-    handle_enter_board_button, handle_order_submit, tick_auto_generators, tick_economy,
-    tick_orders,
+    handle_button_click, handle_cell_interaction, handle_close_version_popup,
+    handle_double_stamina_toggle, handle_enter_board_button, handle_hide_activity,
+    handle_order_submit, handle_settings_center, handle_settings_option, tick_auto_generators,
+    tick_economy, tick_orders,
 };
 pub(crate) use visuals::{
     update_cell_visuals, update_double_stamina_button, update_economy_ui, update_item_detail_bar,

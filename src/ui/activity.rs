@@ -4,7 +4,11 @@
 //! construct the activity screen UI hierarchy (top HUD, icon columns, bottom nav).
 use bevy::prelude::*;
 
-use crate::{ActivityScreenRoot, EnterBoardButton};
+use crate::{
+    ActivityIconsContainer, ActivityScreenRoot, EnterBoardButton, HideActivityButton,
+    SettingsCenterButton, SettingsDropdown, SettingsOptionButton, VersionInfoPopup,
+};
+use super::spawn_hud_row;
 
 // ── Palette for the activity / lobby screen ───────────────────────────────────
 
@@ -14,13 +18,19 @@ const ACT_ICON_BORDER: Color = Color::srgb(0.82, 0.71, 0.55);
 const ACT_BADGE_BG: Color = Color::srgb(0.98, 0.98, 0.95);
 const ACT_BADGE_BORDER: Color = Color::srgb(0.82, 0.71, 0.55);
 const ACT_BADGE_TEXT: Color = Color::srgb(0.55, 0.27, 0.07);
-const ACT_HUD_BG: Color = Color::srgba(0.0, 0.0, 0.0, 0.50);
 const ACT_ENTER_BG: Color = Color::srgb(0.22, 0.44, 0.22);
 const ACT_ENTER_BORDER: Color = Color::srgb(0.45, 0.75, 0.45);
+const HUD_BTN_BG: Color = Color::srgba(0.0, 0.0, 0.0, 0.50);
 
 /// Build the activity / lobby screen UI.  Runs on `OnEnter(GameScreen::Activity)`.
-pub(crate) fn setup_activity_screen(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub(crate) fn setup_activity_screen(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
     let font: Handle<Font> = asset_server.load("fonts/SourceHanSansSC-Regular.ttf");
+
+    // Pre-load the setting icon handle so it can be passed into the dropdown closure.
+    let setting_icon: Handle<Image> = asset_server.load("images/hud/main_icon_setting.png");
 
     commands
         .spawn((
@@ -28,17 +38,129 @@ pub(crate) fn setup_activity_screen(mut commands: Commands, asset_server: Res<As
                 width: percent(100.0),
                 height: percent(100.0),
                 position_type: PositionType::Relative,
+                flex_direction: FlexDirection::Column,
                 ..default()
             },
             BackgroundColor(ACT_BG),
             ActivityScreenRoot,
         ))
         .with_children(|root| {
-            spawn_activity_top_hud(root, &font);
-            spawn_activity_left_column(root, &font);
-            spawn_activity_right_column(root, &font);
+            // Row 1 – HUD (level badge + currency pills)
+            spawn_hud_row(root, &font, &asset_server, "24", "2367", "58", "42");
+
+            // Row 2 – action buttons (right-aligned, below HUD)
+            spawn_activity_action_row(root, &asset_server);
+
+            // Icon columns wrapped in a togglable container
+            root.spawn((
+                Node {
+                    position_type: PositionType::Absolute,
+                    top: px(0.0),
+                    left: px(0.0),
+                    width: percent(100.0),
+                    height: percent(100.0),
+                    ..default()
+                },
+                ActivityIconsContainer,
+            ))
+            .with_children(|icons| {
+                spawn_activity_left_column(icons, &font);
+                spawn_activity_right_column(icons, &font);
+            });
+
             spawn_activity_bottom_nav(root, &font);
         });
+
+    // Settings dropdown (absolute popup, hidden by default).
+    // Tagged with ActivityScreenRoot so it is torn down with the rest of the screen.
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            top: px(110.0),
+            right: px(16.0),
+            flex_direction: FlexDirection::Column,
+            min_width: px(140.0),
+            border_radius: BorderRadius::all(px(8.0)),
+            border: UiRect::all(px(1.0)),
+            padding: UiRect::all(px(4.0)),
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.10, 0.10, 0.10, 0.92)),
+        BorderColor::all(Color::srgba(1.0, 1.0, 1.0, 0.20)),
+        ZIndex(200),
+        Visibility::Hidden,
+        SettingsDropdown,
+        ActivityScreenRoot,
+    ))
+    .with_children(|dd| {
+        // "设置" option row
+        dd.spawn((
+            Button,
+            Node {
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                column_gap: px(8.0),
+                padding: UiRect::axes(px(10.0), px(8.0)),
+                border_radius: BorderRadius::all(px(6.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.05)),
+            SettingsOptionButton,
+        ))
+        .with_children(|row| {
+            row.spawn((
+                Node { width: px(20.0), height: px(20.0), ..default() },
+                ImageNode::new(setting_icon),
+                Pickable::IGNORE,
+            ));
+            row.spawn((
+                Text::new("设置"),
+                TextFont { font: font.clone(), font_size: 13.0, ..default() },
+                TextColor(Color::WHITE),
+            ));
+        });
+    });
+
+    // Version-info popup (absolute, hidden by default; clicking it closes it).
+    commands.spawn((
+        Button,
+        Node {
+            position_type: PositionType::Absolute,
+            top: px(110.0),
+            right: px(16.0),
+            min_width: px(180.0),
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::Center,
+            row_gap: px(6.0),
+            border_radius: BorderRadius::all(px(10.0)),
+            border: UiRect::all(px(1.0)),
+            padding: UiRect::all(px(16.0)),
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.10, 0.10, 0.10, 0.95)),
+        BorderColor::all(Color::srgba(1.0, 1.0, 1.0, 0.25)),
+        ZIndex(300),
+        Visibility::Hidden,
+        VersionInfoPopup,
+        ActivityScreenRoot,
+    ))
+    .with_children(|popup| {
+        popup.spawn((
+            Text::new("游戏版本信息"),
+            TextFont { font: font.clone(), font_size: 14.0, ..default() },
+            TextColor(Color::srgb(0.85, 0.78, 0.60)),
+        ));
+        popup.spawn((
+            Text::new("版本：v0.1.0"),
+            TextFont { font: font.clone(), font_size: 12.0, ..default() },
+            TextColor(Color::WHITE),
+        ));
+        popup.spawn((
+            Text::new("点击关闭"),
+            TextFont { font: font.clone(), font_size: 10.0, ..default() },
+            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.50)),
+        ));
+    });
 }
 
 /// Despawn all activity-screen UI entities on `OnExit(GameScreen::Activity)`.
@@ -51,160 +173,100 @@ pub(crate) fn teardown_activity_screen(
     }
 }
 
-// ── Activity top HUD ──────────────────────────────────────────────────────────
+// ── Activity action button row ─────────────────────────────────────────────────
 
-fn spawn_activity_top_hud(root: &mut ChildSpawnerCommands, font: &Handle<Font>) {
+fn spawn_activity_action_row(
+    root: &mut ChildSpawnerCommands,
+    asset_server: &AssetServer,
+) {
+    let hide_icon: Handle<Image> =
+        asset_server.load("images/hud/main_icon_hide_activity.png");
+    let storage_icon: Handle<Image> = asset_server.load("images/hud/main_icon_storage.png");
+    let shop_icon: Handle<Image> = asset_server.load("images/hud/main_icon_shop.png");
+
     root.spawn((
         Node {
-            position_type: PositionType::Absolute,
-            top: Val::Px(0.0),
-            left: Val::Px(0.0),
             width: percent(100.0),
             flex_direction: FlexDirection::Row,
+            justify_content: JustifyContent::FlexEnd,
             align_items: AlignItems::Center,
-            padding: UiRect::axes(px(16.0), px(12.0)),
-            column_gap: px(10.0),
+            column_gap: px(8.0),
+            padding: UiRect::axes(px(12.0), px(6.0)),
             ..default()
         },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.15)),
-        ZIndex(50),
+        ZIndex(60),
     ))
-    .with_children(|hud| {
-        // Level badge (circular)
-        hud.spawn((
-            Node {
-                width: px(56.0),
-                height: px(56.0),
-                border_radius: BorderRadius::all(px(28.0)),
-                border: UiRect::all(px(2.0)),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                flex_shrink: 0.0,
-                ..default()
-            },
-            BackgroundColor(Color::WHITE),
-            BorderColor::all(ACT_ICON_BORDER),
-        ))
-        .with_children(|badge| {
-            badge.spawn((
-                Text::new("42"),
-                TextFont { font: font.clone(), font_size: 22.0, ..default() },
-                TextColor(Color::srgb(0.15, 0.12, 0.08)),
-            ));
-        });
-
-        // Currency pills row
-        hud.spawn(Node {
-            flex_direction: FlexDirection::Row,
-            align_items: AlignItems::Center,
-            column_gap: px(6.0),
-            flex_grow: 1.0,
-            ..default()
-        })
-        .with_children(|row| {
-            spawn_currency_pill(row, font, "⚡", "24",   Color::srgba(0.20, 0.78, 0.40, 0.40), true);
-            spawn_currency_pill(row, font, "🪙", "2367", Color::srgba(0.88, 0.68, 0.20, 0.40), false);
-            spawn_currency_pill(row, font, "💎", "58",   Color::srgba(0.80, 0.20, 0.30, 0.40), true);
-        });
-
-        // Settings / menu button
-        hud.spawn((
+    .with_children(|row| {
+        // Hide-activity toggle
+        row.spawn((
             Button,
             Node {
-                padding: UiRect::axes(px(12.0), px(4.0)),
-                border_radius: BorderRadius::all(px(999.0)),
+                width: px(36.0),
+                height: px(36.0),
+                border_radius: BorderRadius::all(px(8.0)),
                 border: UiRect::all(px(1.0)),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                flex_shrink: 0.0,
                 ..default()
             },
-            BackgroundColor(ACT_HUD_BG),
+            BackgroundColor(HUD_BTN_BG),
+            BorderColor::all(Color::srgba(1.0, 1.0, 1.0, 0.20)),
+            HideActivityButton,
+        ))
+        .with_children(|btn| {
+            btn.spawn((
+                Node { width: px(24.0), height: px(24.0), ..default() },
+                ImageNode::new(hide_icon),
+                Pickable::IGNORE,
+            ));
+        });
+
+        // Settings-center button (opens dropdown)
+        row.spawn((
+            Button,
+            Node {
+                width: px(36.0),
+                height: px(36.0),
+                border_radius: BorderRadius::all(px(8.0)),
+                border: UiRect::all(px(1.0)),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(HUD_BTN_BG),
+            BorderColor::all(Color::srgba(1.0, 1.0, 1.0, 0.20)),
+            SettingsCenterButton,
+        ))
+        .with_children(|btn| {
+            btn.spawn((
+                Node { width: px(24.0), height: px(24.0), ..default() },
+                ImageNode::new(storage_icon),
+                Pickable::IGNORE,
+            ));
+        });
+
+        // Shop button (no interaction required)
+        row.spawn((
+            Button,
+            Node {
+                width: px(36.0),
+                height: px(36.0),
+                border_radius: BorderRadius::all(px(8.0)),
+                border: UiRect::all(px(1.0)),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(HUD_BTN_BG),
             BorderColor::all(Color::srgba(1.0, 1.0, 1.0, 0.20)),
         ))
         .with_children(|btn| {
             btn.spawn((
-                Text::new("•••"),
-                TextFont { font: font.clone(), font_size: 13.0, ..default() },
-                TextColor(Color::WHITE),
+                Node { width: px(24.0), height: px(24.0), ..default() },
+                ImageNode::new(shop_icon),
+                Pickable::IGNORE,
             ));
         });
-    });
-}
-
-fn spawn_currency_pill(
-    row: &mut ChildSpawnerCommands,
-    font: &Handle<Font>,
-    icon: &str,
-    value: &str,
-    border_color: Color,
-    with_plus: bool,
-) {
-    row.spawn((
-        Node {
-            flex_direction: FlexDirection::Row,
-            align_items: AlignItems::Center,
-            padding: UiRect::axes(px(8.0), px(0.0)),
-            height: px(28.0),
-            border_radius: BorderRadius::all(px(999.0)),
-            border: UiRect::all(px(1.0)),
-            column_gap: px(4.0),
-            min_width: px(90.0),
-            justify_content: if with_plus {
-                JustifyContent::SpaceBetween
-            } else {
-                JustifyContent::Start
-            },
-            ..default()
-        },
-        BackgroundColor(ACT_HUD_BG),
-        BorderColor::all(border_color),
-    ))
-    .with_children(|pill| {
-        pill.spawn((
-            Node {
-                width: px(20.0),
-                height: px(20.0),
-                border_radius: BorderRadius::all(px(10.0)),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.40)),
-        ))
-        .with_children(|ic| {
-            ic.spawn((
-                Text::new(icon),
-                TextFont { font: font.clone(), font_size: 11.0, ..default() },
-            ));
-        });
-
-        pill.spawn((
-            Text::new(value),
-            TextFont { font: font.clone(), font_size: 11.0, ..default() },
-            TextColor(Color::WHITE),
-        ));
-
-        if with_plus {
-            pill.spawn((
-                Node {
-                    width: px(16.0),
-                    height: px(16.0),
-                    border_radius: BorderRadius::all(px(8.0)),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                BackgroundColor(Color::srgba(0.20, 0.75, 0.65, 0.90)),
-            ))
-            .with_children(|plus| {
-                plus.spawn((
-                    Text::new("+"),
-                    TextFont { font: font.clone(), font_size: 10.0, ..default() },
-                    TextColor(Color::WHITE),
-                ));
-            });
-        }
     });
 }
 
@@ -227,7 +289,7 @@ fn spawn_activity_left_column(root: &mut ChildSpawnerCommands, font: &Handle<Fon
     root.spawn((
         Node {
             position_type: PositionType::Absolute,
-            top: px(88.0),
+            top: px(108.0),
             left: px(8.0),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
@@ -252,7 +314,7 @@ fn spawn_activity_right_column(root: &mut ChildSpawnerCommands, font: &Handle<Fo
     root.spawn((
         Node {
             position_type: PositionType::Absolute,
-            top: px(88.0),
+            top: px(108.0),
             right: px(8.0),
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::Center,
