@@ -11,7 +11,7 @@ use crate::items::ItemDatabase;
 use crate::orders::{OrderItemIcon, OrderPanel, OrderSubmitButton, Orders};
 use crate::{
     ActivityButton, BoardScreenRoot, DetailHint, DetailIcon, DetailName,
-    DragGhost, EnergyToggleButton, EnergyToggleImage,
+    DragGhost, EnergyButtonImages, EnergyToggleButton, EnergyToggleImage,
     MessageLabel, PreloadedImages, SubmitBtn, WarehouseButton, ACCENT, BOARD_BG, CELL_EMPTY,
     CELL_EMPTY_ALT, DETAIL_BAR_BG, DETAIL_BAR_H, ORDER_BG, ORDER_SLOT_BG, OVERLAY_ALPHA,
     TEXT_MAIN, TEXT_MUTED, TOP_BAR_BG,
@@ -59,6 +59,7 @@ pub(crate) fn setup_board_screen(
     mut board: ResMut<crate::board::Board>,
     db: Res<ItemDatabase>,
     asset_server: Res<AssetServer>,
+    mut energy_images: ResMut<EnergyButtonImages>,
 ) {
     // Mark the board as changed so `update_cell_visuals` refreshes all cell
     // images on the next frame.  This is necessary because the board UI is
@@ -73,6 +74,10 @@ pub(crate) fn setup_board_screen(
 
     let font: Handle<Font> = asset_server.load("fonts/SourceHanSansSC-Regular.ttf");
 
+    // Populate the shared image handles used by the energy toggle button.
+    energy_images.x1 = asset_server.load("images/hud/farm_chessboard_img_energy_1.png");
+    energy_images.x2 = asset_server.load("images/hud/farm_chessboard_img_energy_2.png");
+
     // Root — full viewport, column layout
     let mut hud_handles = None;
     commands
@@ -86,7 +91,7 @@ pub(crate) fn setup_board_screen(
             BoardScreenRoot,
         ))
         .with_children(|root| {
-            hud_handles = Some(spawn_top_bar(root, &font, &asset_server));
+            hud_handles = Some(spawn_top_bar(root, &font, &asset_server, energy_images.x1.clone()));
             spawn_order_row(root, &font);
             spawn_board_grid(root, &asset_server);
             spawn_bottom_bar(root, &font);
@@ -136,7 +141,7 @@ pub(crate) fn teardown_board_screen(
 /// Spawns the two-row board HUD.
 ///
 /// Row 1 – level badge + stamina / coins / gems pills (activity-screen style).
-/// Row 2 – energy-multiplier buttons (×1 / ×2) + shop button.
+/// Row 2 – energy-multiplier toggle button (×1 / ×2) + shop button.
 ///
 /// Returns [`HudRowHandles`] so the caller can insert live-update label
 /// components (`LevelLabel`, `StaminaLabel`, etc.) on the returned text nodes.
@@ -144,13 +149,12 @@ fn spawn_top_bar(
     root: &mut ChildSpawnerCommands,
     font: &Handle<Font>,
     asset_server: &AssetServer,
+    energy1: Handle<Image>,
 ) -> super::HudRowHandles {
     // Row 1: shared activity-style HUD
     let handles = spawn_hud_row(root, font, asset_server, "100/100", "0", "0", "1");
 
     // Row 2: energy multiplier toggle button + shop
-    let energy1: Handle<Image> =
-        asset_server.load("images/hud/farm_chessboard_img_energy_1.png");
     let shop_icon: Handle<Image> = asset_server.load("images/hud/main_icon_shop.png");
 
     root.spawn((

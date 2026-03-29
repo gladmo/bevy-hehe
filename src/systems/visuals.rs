@@ -3,7 +3,8 @@ use bevy::prelude::*;
 
 use crate::{
     DetailHint, DetailIcon, DetailName, DoubleStaminaButton, DoubleStaminaLabel, DoubleStaminaMode,
-    EnergyToggleButton, EnergyToggleImage, MessageBar, MessageLabel, SubmitBtn, ACCENT, CELL_EMPTY,
+    EnergyButtonImages, EnergyToggleButton, EnergyToggleImage, MessageBar, MessageLabel, SubmitBtn,
+    ACCENT, CELL_EMPTY,
     CELL_EMPTY_ALT, CELL_HOVERED, CELL_SELECTED, DragState, EggStorage, SECONDS_PER_MINUTE,
 };
 use crate::board::{Board, BoardCell, CellCrownIcon, CellEnergyIcon, CellImage, CellSelectedOverlay, BOARD_COLS};
@@ -455,7 +456,7 @@ pub(crate) fn update_order_icons(
 /// the button label and colors in sync with the current mode state.
 pub(crate) fn update_double_stamina_button(
     mode: Res<DoubleStaminaMode>,
-    asset_server: Res<AssetServer>,
+    energy_images: Res<EnergyButtonImages>,
     mut btn_q: Query<(&mut BackgroundColor, &mut BorderColor), With<DoubleStaminaButton>>,
     mut label_q: Query<(&mut Text, &mut TextColor), With<DoubleStaminaLabel>>,
     mut toggle_btn_q: Query<(&mut BackgroundColor, &mut BorderColor), (With<EnergyToggleButton>, Without<DoubleStaminaButton>)>,
@@ -487,18 +488,21 @@ pub(crate) fn update_double_stamina_button(
         color.set_if_neq(new_color);
     }
     // Image toggle button: swap the image and update background highlight.
+    // ×2 active → bright orange border; ×1 active → dimmer border.
     let active_border = BorderColor::all(Color::srgb(0.88, 0.50, 0.20));
-    let inactive_border = BorderColor::all(Color::srgb(0.88, 0.50, 0.20));
+    let inactive_border = BorderColor::all(Color::srgb(0.40, 0.32, 0.20));
     let active_bg = BackgroundColor(Color::srgb(0.50, 0.20, 0.08));
     let inactive_bg = BackgroundColor(Color::srgb(0.20, 0.16, 0.10));
     for (mut bg, mut border) in &mut toggle_btn_q {
         bg.set_if_neq(if mode.active { active_bg } else { inactive_bg });
         border.set_if_neq(if mode.active { active_border } else { inactive_border });
     }
-    let energy1: Handle<Image> = asset_server.load("images/hud/farm_chessboard_img_energy_1.png");
-    let energy2: Handle<Image> = asset_server.load("images/hud/farm_chessboard_img_energy_2.png");
     for mut img in &mut toggle_img_q {
-        let new_handle = if mode.active { energy2.clone() } else { energy1.clone() };
+        let new_handle = if mode.active {
+            energy_images.x2.clone()
+        } else {
+            energy_images.x1.clone()
+        };
         if img.image != new_handle {
             img.image = new_handle;
         }

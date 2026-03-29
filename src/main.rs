@@ -335,6 +335,14 @@ pub(crate) struct EnergyToggleButton;
 #[derive(Component)]
 pub(crate) struct EnergyToggleImage;
 
+/// Holds the two energy-icon image handles so the visual system can swap them
+/// without calling [`AssetServer::load`] every frame.
+#[derive(Resource, Default)]
+pub(crate) struct EnergyButtonImages {
+    pub(crate) x1: Handle<Image>,
+    pub(crate) x2: Handle<Image>,
+}
+
 // ── Idle / Attract-animation resources ───────────────────────────────────────
 
 /// Tracks elapsed time since the last user input (mouse/touch/key).
@@ -448,6 +456,7 @@ fn main() {
     .insert_resource(VersionPopupOpen::default())
     .init_resource::<PreloadedImages>()
     .init_resource::<GameAudio>()
+    .init_resource::<EnergyButtonImages>()
     .init_state::<GameScreen>()
     .add_systems(Startup, preload_images)
     .add_systems(Startup, setup_initial_board)
