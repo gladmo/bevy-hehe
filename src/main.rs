@@ -322,13 +322,18 @@ pub(crate) struct VersionPopupOpen {
     pub(crate) open: bool,
 }
 
-/// Tag for the ×1 energy-multiplier button in the board HUD row 2.
+/// Tag for the single energy-multiplier toggle button in the board HUD row 2.
+///
+/// Clicking cycles between ×1 and ×2 stamina consumption.
 #[derive(Component)]
-pub(crate) struct EnergyX1Button;
+pub(crate) struct EnergyToggleButton;
 
-/// Tag for the ×2 energy-multiplier button in the board HUD row 2.
+/// Tag for the image node inside [`EnergyToggleButton`].
+///
+/// The visual system swaps its [`ImageNode`] handle to reflect the current
+/// [`DoubleStaminaMode`] state.
 #[derive(Component)]
-pub(crate) struct EnergyX2Button;
+pub(crate) struct EnergyToggleImage;
 
 // ── Idle / Attract-animation resources ───────────────────────────────────────
 

@@ -11,7 +11,7 @@ use crate::items::ItemDatabase;
 use crate::orders::{OrderItemIcon, OrderPanel, OrderSubmitButton, Orders};
 use crate::{
     ActivityButton, BoardScreenRoot, DetailHint, DetailIcon, DetailName,
-    DragGhost, EnergyX1Button, EnergyX2Button,
+    DragGhost, EnergyToggleButton, EnergyToggleImage,
     MessageLabel, PreloadedImages, SubmitBtn, WarehouseButton, ACCENT, BOARD_BG, CELL_EMPTY,
     CELL_EMPTY_ALT, DETAIL_BAR_BG, DETAIL_BAR_H, ORDER_BG, ORDER_SLOT_BG, OVERLAY_ALPHA,
     TEXT_MAIN, TEXT_MUTED, TOP_BAR_BG,
@@ -148,11 +148,9 @@ fn spawn_top_bar(
     // Row 1: shared activity-style HUD
     let handles = spawn_hud_row(root, font, asset_server, "100/100", "0", "0", "1");
 
-    // Row 2: energy multiplier buttons + shop
+    // Row 2: energy multiplier toggle button + shop
     let energy1: Handle<Image> =
         asset_server.load("images/hud/farm_chessboard_img_energy_1.png");
-    let energy2: Handle<Image> =
-        asset_server.load("images/hud/farm_chessboard_img_energy_2.png");
     let shop_icon: Handle<Image> = asset_server.load("images/hud/main_icon_shop.png");
 
     root.spawn((
@@ -170,7 +168,7 @@ fn spawn_top_bar(
         BorderColor::all(Color::srgb(0.35, 0.28, 0.18)),
     ))
     .with_children(|row| {
-        // ×1 energy button (active by default)
+        // Single energy toggle button (×1 by default; click to cycle)
         row.spawn((
             Button,
             Node {
@@ -183,37 +181,14 @@ fn spawn_top_bar(
                 ..default()
             },
             BackgroundColor(Color::srgb(0.20, 0.16, 0.10)),
-            BorderColor::all(Color::srgb(0.88, 0.50, 0.20)), // active by default
-            EnergyX1Button,
+            BorderColor::all(Color::srgb(0.88, 0.50, 0.20)), // ×1 active by default
+            EnergyToggleButton,
         ))
         .with_children(|btn| {
             btn.spawn((
                 Node { width: px(28.0), height: px(28.0), ..default() },
                 ImageNode::new(energy1),
-                Pickable::IGNORE,
-            ));
-        });
-
-        // ×2 energy button (inactive by default)
-        row.spawn((
-            Button,
-            Node {
-                width: px(40.0),
-                height: px(40.0),
-                border_radius: BorderRadius::all(px(8.0)),
-                border: UiRect::all(px(1.0)),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(Color::srgb(0.20, 0.16, 0.10)),
-            BorderColor::all(Color::srgb(0.40, 0.32, 0.20)),
-            EnergyX2Button,
-        ))
-        .with_children(|btn| {
-            btn.spawn((
-                Node { width: px(28.0), height: px(28.0), ..default() },
-                ImageNode::new(energy2),
+                EnergyToggleImage,
                 Pickable::IGNORE,
             ));
         });
