@@ -151,7 +151,7 @@ pub(crate) fn setup_activity_screen(
             TextColor(Color::srgb(0.85, 0.78, 0.60)),
         ));
         popup.spawn((
-            Text::new("版本：v0.1.0"),
+            Text::new(concat!("版本：", env!("BUILD_TIME"))),
             TextFont { font: font.clone(), font_size: 12.0, ..default() },
             TextColor(Color::WHITE),
         ));
