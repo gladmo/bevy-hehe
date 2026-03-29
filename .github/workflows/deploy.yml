@@ -46,30 +46,8 @@ jobs:
       #     echo "Installing wasm-bindgen-cli ${WASM_BINDGEN_VERSION}"
       #     cargo install wasm-bindgen-cli --version "${WASM_BINDGEN_VERSION}" --locked
 
-      - name: Build WASM
-        run: cargo build --profile wasm-release --target wasm32-unknown-unknown
-
-      - name: Generate JS bindings
-        run: |
-          wasm-bindgen \
-            --out-dir ./out \
-            --out-name "hehe" \
-            --target web \
-            --no-typescript \
-            target/wasm32-unknown-unknown/wasm-release/bevy-hehe.wasm
-
-      - name: Assemble site
-        run: |
-          cp index.html ./out/
-          cp -r assets ./out/
-
-      - name: Embed WASM file size into index.html
-        run: |
-          WASM_SIZE=$(wc -c < "./out/hehe_bg.wasm" | tr -d ' ')
-          sed \
-            -e "s/{{WASM_SIZE}}/${WASM_SIZE}/" \
-            ./out/index.html > ./out/index.html.tmp
-          mv ./out/index.html.tmp ./out/index.html
+      - name: Build WASM, assemble site, and embed metadata
+        run: bash build.sh
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

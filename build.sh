@@ -15,7 +15,9 @@ cp index.html ./out/
 cp -r assets ./out/
 
 WASM_SIZE=$(wc -c < "./out/${OUT_NAME}_bg.wasm" | tr -d ' ')
+CACHE_BUST=$(sha256sum "./out/${OUT_NAME}_bg.wasm" | cut -c1-8)
 sed \
   -e "s/{{WASM_SIZE}}/${WASM_SIZE}/" \
+  -e "s/{{CACHE_BUST}}/${CACHE_BUST}/g" \
   ./out/index.html > ./out/index.html.tmp
 mv ./out/index.html.tmp ./out/index.html
