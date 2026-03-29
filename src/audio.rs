@@ -78,8 +78,15 @@ pub(crate) fn setup_bgm(asset_server: Res<AssetServer>, mut commands: Commands) 
 
 /// WASM only: resumes the background music on the first mouse-click, key-press,
 /// or touch-start event, working around browsers' autoplay policy.
+///
+/// Two separate flags are used to handle a common race condition on mobile: the
+/// user may interact with the page before the BGM [`AudioSink`] is ready (the
+/// audio asset is still downloading).  [`had_interaction`] records that we owe
+/// a `play()` call; [`unlocked`] is only set once we actually manage to call
+/// it, so we keep retrying on subsequent frames until the sink exists.
 #[cfg(target_arch = "wasm32")]
 pub(crate) fn unlock_bgm_on_interaction(
+    mut had_interaction: Local<bool>,
     mut unlocked: Local<bool>,
     sinks: Query<&AudioSink, With<BgmSink>>,
     mouse: Res<ButtonInput<MouseButton>>,
@@ -89,13 +96,24 @@ pub(crate) fn unlock_bgm_on_interaction(
     if *unlocked {
         return;
     }
-    let interacted = mouse.get_just_pressed().next().is_some()
-        || keys.get_just_pressed().next().is_some()
-        || touches.iter_just_pressed().next().is_some();
-    if interacted {
+
+    // Latch the first user gesture (touch, click, or key).
+    if !*had_interaction {
+        let interacted = mouse.get_just_pressed().next().is_some()
+            || keys.get_just_pressed().next().is_some()
+            || touches.iter_just_pressed().next().is_some();
+        if interacted {
+            *had_interaction = true;
+        }
+    }
+
+    // Once we have seen an interaction, try to play the sink every frame until
+    // it exists.  On mobile networks the audio asset may still be downloading
+    // when the first touch fires, so the AudioSink component is not yet present.
+    if *had_interaction {
         for sink in &sinks {
             sink.play();
+            *unlocked = true;
         }
-        *unlocked = true;
     }
 }
