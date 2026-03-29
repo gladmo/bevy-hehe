@@ -18,6 +18,9 @@
     resume()。这是跨浏览器最可靠的解决方案，因为 resume() 必须在同步的用户事件
     处理器内调用，而不能在 requestAnimationFrame 回调（Bevy ECS 的运行时机）中
     调用。
+
+    使用 ES6 class 继承确保在 iOS Safari 等移动端浏览器中实例检查（instanceof）
+    和原型链都能正常工作。
   -->
   <script>
     (function () {
@@ -27,14 +30,38 @@
       var captured = [];
       var eventTypes = ["click", "keydown", "touchstart", "pointerdown"];
 
-      // Patch the constructor so every AudioContext created after this point
-      // (including the one Bevy/rodio creates internally) is captured.
-      function PatchedAudioContext(options) {
-        var ctx = new OrigAudioContext(options);
-        captured.push(ctx);
-        return ctx;
-      }
-      PatchedAudioContext.prototype = OrigAudioContext.prototype;
+      // Patch the constructor using ES6 class inheritance so that every
+      // AudioContext created after this point (including the one Bevy/rodio
+      // creates internally) is captured, and instanceof / prototype checks
+      // continue to work correctly on all mobile browsers.
+      var PatchedAudioContext = (function () {
+        try {
+          // ES6 class-based patch — preferred on modern browsers (including iOS
+          // Safari and Android Chrome) because it preserves the correct
+          // prototype chain and passes all native instanceof checks.
+          return new Function(
+            "Orig", "captured",
+            [
+              "class Patched extends Orig {",
+              "  constructor(options) {",
+              "    super(options);",
+              "    captured.push(this);",
+              "  }",
+              "}",
+              "return Patched;"
+            ].join("\n")
+          )(OrigAudioContext, captured);
+        } catch (_) {
+          // Fallback for environments where dynamic class creation is blocked.
+          function Fallback(options) {
+            var ctx = new OrigAudioContext(options);
+            captured.push(ctx);
+            return ctx;
+          }
+          Fallback.prototype = OrigAudioContext.prototype;
+          return Fallback;
+        }
+      })();
 
       window.AudioContext = PatchedAudioContext;
       if (window.webkitAudioContext) {
@@ -56,7 +83,11 @@
           }
         });
 
-        // Once every captured context is running, remove the listeners.
+        // Keep the listeners active until at least one context has been
+        // captured and all captured contexts are running.  This handles the
+        // case where Bevy/rodio creates the AudioContext after the very first
+        // user gesture (e.g. while assets are still downloading on slow mobile
+        // connections).
         if (captured.length > 0 &&
             captured.every(function (ctx) { return ctx.state === "running"; })) {
           eventTypes.forEach(function (type) {
