@@ -55,9 +55,19 @@ pub(crate) fn setup_initial_board(mut board: ResMut<Board>) {
 pub(crate) fn setup_board_screen(
     mut commands: Commands,
     mut orders: ResMut<Orders>,
+    mut board: ResMut<crate::board::Board>,
     db: Res<ItemDatabase>,
     asset_server: Res<AssetServer>,
 ) {
+    // Mark the board as changed so `update_cell_visuals` refreshes all cell
+    // images on the next frame.  This is necessary because the board UI is
+    // recreated from scratch every time the player enters the board screen, but
+    // the underlying `Board` resource keeps its data across screen transitions.
+    // Without this, pieces would remain invisible on the 2nd+ visit because
+    // `update_cell_visuals` skips its image-update block when the board has not
+    // changed.
+    board.set_changed();
+
     orders.fill_orders(&db);
 
     let font: Handle<Font> = asset_server.load("fonts/SourceHanSansSC-Regular.ttf");
