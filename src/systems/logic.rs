@@ -2,10 +2,13 @@
 use bevy::prelude::*;
 
 use crate::{
-    ActivityButton, AutoGenCooldowns, AutoGenCounts, AutoGenTimers, DoubleStaminaButton,
-    DoubleStaminaMode, EggStorage, EnterBoardButton, GameAudio, GameScreen,
-    GeneratorUsesRemaining, JellyClickAnim, MessageBar, JELLY_CLICK_DURATION,
-    SECONDS_PER_MINUTE, AUTO_GEN_BATCH_LIMIT, AUTO_GEN_COOLDOWN_SECS, WarehouseButton,
+    ActivityButton, ActivityIconsContainer, ActivityIconsHidden, AutoGenCooldowns, AutoGenCounts,
+    AutoGenTimers, DoubleStaminaButton, DoubleStaminaMode, EggStorage, EnergyX1Button,
+    EnergyX2Button, EnterBoardButton, GameAudio, GameScreen, GeneratorUsesRemaining,
+    HideActivityButton, JellyClickAnim, MessageBar, SettingsCenterButton, SettingsDropdown,
+    SettingsDropdownOpen, SettingsOptionButton, VersionInfoPopup, VersionPopupOpen,
+    JELLY_CLICK_DURATION, SECONDS_PER_MINUTE, AUTO_GEN_BATCH_LIMIT, AUTO_GEN_COOLDOWN_SECS,
+    WarehouseButton,
 };
 use crate::board::{Board, BoardCell, CellImage, ClickAction};
 use crate::economy::Economy;
@@ -430,10 +433,22 @@ pub(crate) fn handle_order_submit(
 pub(crate) fn handle_double_stamina_toggle(
     mut mode: ResMut<DoubleStaminaMode>,
     interaction_query: Query<&Interaction, (Changed<Interaction>, With<DoubleStaminaButton>)>,
+    x1_query: Query<&Interaction, (Changed<Interaction>, With<EnergyX1Button>)>,
+    x2_query: Query<&Interaction, (Changed<Interaction>, With<EnergyX2Button>)>,
 ) {
     for interaction in &interaction_query {
         if *interaction == Interaction::Pressed {
             mode.active = !mode.active;
+        }
+    }
+    for interaction in &x1_query {
+        if *interaction == Interaction::Pressed {
+            mode.active = false;
+        }
+    }
+    for interaction in &x2_query {
+        if *interaction == Interaction::Pressed {
+            mode.active = true;
         }
     }
 }
@@ -484,6 +499,100 @@ pub(crate) fn handle_enter_board_button(
                 commands.spawn((AudioPlayer::new(sfx), PlaybackSettings::DESPAWN));
             }
             next_state.set(GameScreen::Board);
+        }
+    }
+}
+
+// ── Activity-screen HUD handlers ──────────────────────────────────────────────
+
+/// Toggle the visibility of the activity icon columns when the hide-activity
+/// button is pressed.
+pub(crate) fn handle_hide_activity(
+    mut hidden: ResMut<ActivityIconsHidden>,
+    interaction_query: Query<&Interaction, (Changed<Interaction>, With<HideActivityButton>)>,
+    mut container_query: Query<&mut Visibility, With<ActivityIconsContainer>>,
+) {
+    for interaction in &interaction_query {
+        if *interaction == Interaction::Pressed {
+            hidden.hidden = !hidden.hidden;
+            let vis = if hidden.hidden {
+                Visibility::Hidden
+            } else {
+                Visibility::Inherited
+            };
+            for mut v in &mut container_query {
+                *v = vis;
+            }
+        }
+    }
+}
+
+/// Toggle the settings dropdown open/closed when the settings-center button is
+/// pressed.  Closes the version-info popup if it happens to be open.
+pub(crate) fn handle_settings_center(
+    mut dropdown_open: ResMut<SettingsDropdownOpen>,
+    mut popup_open: ResMut<VersionPopupOpen>,
+    interaction_query: Query<&Interaction, (Changed<Interaction>, With<SettingsCenterButton>)>,
+    mut dropdown_query: Query<&mut Visibility, With<SettingsDropdown>>,
+    mut popup_query: Query<&mut Visibility, (With<VersionInfoPopup>, Without<SettingsDropdown>)>,
+) {
+    for interaction in &interaction_query {
+        if *interaction == Interaction::Pressed {
+            dropdown_open.open = !dropdown_open.open;
+            let vis = if dropdown_open.open {
+                Visibility::Inherited
+            } else {
+                Visibility::Hidden
+            };
+            for mut v in &mut dropdown_query {
+                *v = vis;
+            }
+            // Close version popup whenever dropdown state changes.
+            if popup_open.open {
+                popup_open.open = false;
+                for mut v in &mut popup_query {
+                    *v = Visibility::Hidden;
+                }
+            }
+        }
+    }
+}
+
+/// Show the version-info popup when the "设置" option inside the settings
+/// dropdown is clicked.  Also closes the dropdown.
+pub(crate) fn handle_settings_option(
+    mut popup_open: ResMut<VersionPopupOpen>,
+    mut dropdown_open: ResMut<SettingsDropdownOpen>,
+    interaction_query: Query<&Interaction, (Changed<Interaction>, With<SettingsOptionButton>)>,
+    mut popup_query: Query<&mut Visibility, With<VersionInfoPopup>>,
+    mut dropdown_query: Query<&mut Visibility, (With<SettingsDropdown>, Without<VersionInfoPopup>)>,
+) {
+    for interaction in &interaction_query {
+        if *interaction == Interaction::Pressed {
+            popup_open.open = true;
+            dropdown_open.open = false;
+            for mut v in &mut popup_query {
+                *v = Visibility::Inherited;
+            }
+            for mut v in &mut dropdown_query {
+                *v = Visibility::Hidden;
+            }
+        }
+    }
+}
+
+/// Close the version-info popup when the user clicks anywhere on it.
+pub(crate) fn handle_close_version_popup(
+    mut popup_open: ResMut<VersionPopupOpen>,
+    interaction_query: Query<&Interaction, (Changed<Interaction>, With<VersionInfoPopup>)>,
+    mut popup_query: Query<&mut Visibility, With<VersionInfoPopup>>,
+) {
+    for interaction in &interaction_query {
+        if *interaction == Interaction::Pressed {
+            popup_open.open = false;
+            for mut v in &mut popup_query {
+                *v = Visibility::Hidden;
+            }
         }
     }
 }

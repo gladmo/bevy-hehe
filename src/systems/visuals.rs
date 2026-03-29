@@ -3,8 +3,8 @@ use bevy::prelude::*;
 
 use crate::{
     DetailHint, DetailIcon, DetailName, DoubleStaminaButton, DoubleStaminaLabel, DoubleStaminaMode,
-    MessageBar, MessageLabel, SubmitBtn, ACCENT, CELL_EMPTY, CELL_EMPTY_ALT, CELL_HOVERED,
-    CELL_SELECTED, DragState, EggStorage, SECONDS_PER_MINUTE,
+    EnergyX1Button, EnergyX2Button, MessageBar, MessageLabel, SubmitBtn, ACCENT, CELL_EMPTY,
+    CELL_EMPTY_ALT, CELL_HOVERED, CELL_SELECTED, DragState, EggStorage, SECONDS_PER_MINUTE,
 };
 use crate::board::{Board, BoardCell, CellCrownIcon, CellEnergyIcon, CellImage, CellSelectedOverlay, BOARD_COLS};
 use crate::items::types::ChainType;
@@ -457,10 +457,13 @@ pub(crate) fn update_double_stamina_button(
     mode: Res<DoubleStaminaMode>,
     mut btn_q: Query<(&mut BackgroundColor, &mut BorderColor), With<DoubleStaminaButton>>,
     mut label_q: Query<(&mut Text, &mut TextColor), With<DoubleStaminaLabel>>,
+    mut x1_q: Query<(&mut BackgroundColor, &mut BorderColor), (With<EnergyX1Button>, Without<DoubleStaminaButton>)>,
+    mut x2_q: Query<(&mut BackgroundColor, &mut BorderColor), (With<EnergyX2Button>, Without<DoubleStaminaButton>)>,
 ) {
     if !mode.is_changed() {
         return;
     }
+    // Legacy single-button style (board stat-card era, kept for compatibility).
     if let Ok((mut bg, mut border)) = btn_q.single_mut() {
         if mode.active {
             bg.set_if_neq(BackgroundColor(Color::srgb(0.50, 0.20, 0.08)));
@@ -481,5 +484,18 @@ pub(crate) fn update_double_stamina_button(
             TextColor(Color::srgb(0.65, 0.60, 0.48))
         };
         color.set_if_neq(new_color);
+    }
+    // Image-button style: highlight the active energy-multiplier button.
+    let active_border = BorderColor::all(Color::srgb(0.88, 0.50, 0.20));
+    let inactive_border = BorderColor::all(Color::srgb(0.40, 0.32, 0.20));
+    let active_bg = BackgroundColor(Color::srgb(0.50, 0.20, 0.08));
+    let inactive_bg = BackgroundColor(Color::srgb(0.20, 0.16, 0.10));
+    for (mut bg, mut border) in &mut x1_q {
+        bg.set_if_neq(if mode.active { inactive_bg } else { active_bg });
+        border.set_if_neq(if mode.active { inactive_border } else { active_border });
+    }
+    for (mut bg, mut border) in &mut x2_q {
+        bg.set_if_neq(if mode.active { active_bg } else { inactive_bg });
+        border.set_if_neq(if mode.active { active_border } else { inactive_border });
     }
 }

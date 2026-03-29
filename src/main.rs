@@ -23,8 +23,9 @@ use items::ItemDatabase;
 use orders::Orders;
 use systems::{
     animate_attract_icons, animate_jelly_click, animate_rising_stars, handle_button_click,
-    handle_cell_interaction, handle_double_stamina_toggle, handle_drag_input,
-    handle_enter_board_button, handle_order_submit, tick_attract_animation, tick_auto_generators,
+    handle_cell_interaction, handle_close_version_popup, handle_double_stamina_toggle,
+    handle_drag_input, handle_enter_board_button, handle_hide_activity, handle_order_submit,
+    handle_settings_center, handle_settings_option, tick_attract_animation, tick_auto_generators,
     tick_economy, tick_idle_timer, tick_orders, tick_star_spawners, update_cell_visuals,
     update_double_stamina_button, update_drag_ghost, update_economy_ui, update_item_detail_bar,
     update_message_bar, update_order_icons, update_orders_ui,
@@ -57,7 +58,6 @@ const WINDOW_H: u32 = 820;
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 
-pub(crate) const TOP_BAR_H: f32 = 65.0;
 /// Height of the item-detail bar shown at the bottom of the screen.
 pub(crate) const DETAIL_BAR_H: f32 = 85.0;
 pub(crate) const SECONDS_PER_MINUTE: f32 = 60.0;
@@ -78,7 +78,6 @@ pub(crate) const CELL_SELECTED: Color = Color::srgb(0.55, 0.45, 0.20);
 pub(crate) const TEXT_MAIN: Color = Color::srgb(0.96, 0.91, 0.78);
 pub(crate) const TEXT_MUTED: Color = Color::srgb(0.65, 0.60, 0.48);
 pub(crate) const ACCENT: Color = Color::srgb(0.88, 0.72, 0.30);
-pub(crate) const ACCENT_GREEN: Color = Color::srgb(0.40, 0.80, 0.45);
 pub(crate) const ORDER_SLOT_BG: Color = Color::srgb(0.18, 0.14, 0.10);
 /// Semi-transparent dark overlay used on icon/card backgrounds.
 pub(crate) const OVERLAY_ALPHA: f32 = 0.25;
@@ -278,6 +277,59 @@ pub(crate) struct DoubleStaminaButton;
 #[derive(Component)]
 pub(crate) struct DoubleStaminaLabel;
 
+// ── Activity-screen HUD controls ──────────────────────────────────────────────
+
+/// Tag for the "hide activity icons" toggle button.
+#[derive(Component)]
+pub(crate) struct HideActivityButton;
+
+/// Resource tracking whether the activity icon columns are currently hidden.
+#[derive(Resource, Default)]
+pub(crate) struct ActivityIconsHidden {
+    pub(crate) hidden: bool,
+}
+
+/// Tag for the container wrapping the left/right activity icon columns.
+/// Visibility is toggled by [`HideActivityButton`].
+#[derive(Component)]
+pub(crate) struct ActivityIconsContainer;
+
+/// Tag for the settings-center button that opens the settings dropdown.
+#[derive(Component)]
+pub(crate) struct SettingsCenterButton;
+
+/// Tag for the settings dropdown panel (hidden by default).
+#[derive(Component)]
+pub(crate) struct SettingsDropdown;
+
+/// Resource tracking whether the settings dropdown is currently open.
+#[derive(Resource, Default)]
+pub(crate) struct SettingsDropdownOpen {
+    pub(crate) open: bool,
+}
+
+/// Tag for the "设置" option button inside the settings dropdown.
+#[derive(Component)]
+pub(crate) struct SettingsOptionButton;
+
+/// Tag for the version-info popup (hidden by default).
+#[derive(Component)]
+pub(crate) struct VersionInfoPopup;
+
+/// Resource tracking whether the version-info popup is currently visible.
+#[derive(Resource, Default)]
+pub(crate) struct VersionPopupOpen {
+    pub(crate) open: bool,
+}
+
+/// Tag for the ×1 energy-multiplier button in the board HUD row 2.
+#[derive(Component)]
+pub(crate) struct EnergyX1Button;
+
+/// Tag for the ×2 energy-multiplier button in the board HUD row 2.
+#[derive(Component)]
+pub(crate) struct EnergyX2Button;
+
 // ── Idle / Attract-animation resources ───────────────────────────────────────
 
 /// Tracks elapsed time since the last user input (mouse/touch/key).
@@ -386,6 +438,9 @@ fn main() {
     .insert_resource(IdleTimer::default())
     .insert_resource(AttractAnimState::default())
     .insert_resource(DoubleStaminaMode::default())
+    .insert_resource(ActivityIconsHidden::default())
+    .insert_resource(SettingsDropdownOpen::default())
+    .insert_resource(VersionPopupOpen::default())
     .init_resource::<PreloadedImages>()
     .init_resource::<GameAudio>()
     .init_state::<GameScreen>()
@@ -414,7 +469,13 @@ fn main() {
         // Activity-screen input handling
         .add_systems(
             Update,
-            handle_enter_board_button
+            (
+                handle_enter_board_button,
+                handle_hide_activity,
+                handle_settings_center,
+                handle_settings_option,
+                handle_close_version_popup,
+            )
                 .in_set(GameSet::Logic)
                 .run_if(in_state(GameScreen::Activity)),
         )
