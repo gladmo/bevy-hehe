@@ -457,8 +457,8 @@ pub(crate) fn update_double_stamina_button(
     mode: Res<DoubleStaminaMode>,
     mut btn_q: Query<(&mut BackgroundColor, &mut BorderColor), With<DoubleStaminaButton>>,
     mut label_q: Query<(&mut Text, &mut TextColor), With<DoubleStaminaLabel>>,
-    mut x1_q: Query<(&mut BackgroundColor, &mut BorderColor), (With<EnergyX1Button>, Without<DoubleStaminaButton>)>,
-    mut x2_q: Query<(&mut BackgroundColor, &mut BorderColor), (With<EnergyX2Button>, Without<DoubleStaminaButton>)>,
+    mut x1_q: Query<(&mut BackgroundColor, &mut BorderColor), (With<EnergyX1Button>, Without<DoubleStaminaButton>, Without<EnergyX2Button>)>,
+    mut x2_q: Query<(&mut BackgroundColor, &mut BorderColor), (With<EnergyX2Button>, Without<DoubleStaminaButton>, Without<EnergyX1Button>)>,
 ) {
     if !mode.is_changed() {
         return;
