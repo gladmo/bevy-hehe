@@ -162,7 +162,7 @@
   <canvas id="bevy-canvas"></canvas>
 
   <script type="module">
-    import init from "./hehe.js";
+    import init from "./hehe.js?v={{CACHE_BUST}}";
 
     const fill = document.getElementById("progress-fill");
     const text = document.getElementById("progress-text");
@@ -233,7 +233,7 @@
       return buffer.buffer;
     }
 
-    fetchWasmWithProgress("./hehe_bg.wasm")
+    fetchWasmWithProgress("./hehe_bg.wasm?v={{CACHE_BUST}}")
       .then((wasmBuffer) => {
         // WASM download finished — show 100 % and switch status text before
         // the (potentially slow) compilation + instantiation step.
