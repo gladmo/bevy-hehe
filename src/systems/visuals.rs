@@ -3,7 +3,8 @@ use bevy::prelude::*;
 
 use crate::{
     DetailHint, DetailIcon, DetailName, DoubleStaminaButton, DoubleStaminaLabel, DoubleStaminaMode,
-    EnergyX1Button, EnergyX2Button, MessageBar, MessageLabel, SubmitBtn, ACCENT, CELL_EMPTY,
+    EnergyButtonImages, EnergyToggleButton, EnergyToggleImage, MessageBar, MessageLabel, SubmitBtn,
+    ACCENT, CELL_EMPTY,
     CELL_EMPTY_ALT, CELL_HOVERED, CELL_SELECTED, DragState, EggStorage, SECONDS_PER_MINUTE,
 };
 use crate::board::{Board, BoardCell, CellCrownIcon, CellEnergyIcon, CellImage, CellSelectedOverlay, BOARD_COLS};
@@ -455,10 +456,11 @@ pub(crate) fn update_order_icons(
 /// the button label and colors in sync with the current mode state.
 pub(crate) fn update_double_stamina_button(
     mode: Res<DoubleStaminaMode>,
+    energy_images: Res<EnergyButtonImages>,
     mut btn_q: Query<(&mut BackgroundColor, &mut BorderColor), With<DoubleStaminaButton>>,
     mut label_q: Query<(&mut Text, &mut TextColor), With<DoubleStaminaLabel>>,
-    mut x1_q: Query<(&mut BackgroundColor, &mut BorderColor), (With<EnergyX1Button>, Without<DoubleStaminaButton>, Without<EnergyX2Button>)>,
-    mut x2_q: Query<(&mut BackgroundColor, &mut BorderColor), (With<EnergyX2Button>, Without<DoubleStaminaButton>, Without<EnergyX1Button>)>,
+    mut toggle_btn_q: Query<(&mut BackgroundColor, &mut BorderColor), (With<EnergyToggleButton>, Without<DoubleStaminaButton>)>,
+    mut toggle_img_q: Query<&mut ImageNode, With<EnergyToggleImage>>,
 ) {
     if !mode.is_changed() {
         return;
@@ -485,17 +487,24 @@ pub(crate) fn update_double_stamina_button(
         };
         color.set_if_neq(new_color);
     }
-    // Image-button style: highlight the active energy-multiplier button.
+    // Image toggle button: swap the image and update background highlight.
+    // ×2 active → bright orange border; ×1 active → dimmer border.
     let active_border = BorderColor::all(Color::srgb(0.88, 0.50, 0.20));
     let inactive_border = BorderColor::all(Color::srgb(0.40, 0.32, 0.20));
     let active_bg = BackgroundColor(Color::srgb(0.50, 0.20, 0.08));
     let inactive_bg = BackgroundColor(Color::srgb(0.20, 0.16, 0.10));
-    for (mut bg, mut border) in &mut x1_q {
-        bg.set_if_neq(if mode.active { inactive_bg } else { active_bg });
-        border.set_if_neq(if mode.active { inactive_border } else { active_border });
-    }
-    for (mut bg, mut border) in &mut x2_q {
+    for (mut bg, mut border) in &mut toggle_btn_q {
         bg.set_if_neq(if mode.active { active_bg } else { inactive_bg });
         border.set_if_neq(if mode.active { active_border } else { inactive_border });
+    }
+    for mut img in &mut toggle_img_q {
+        let new_handle = if mode.active {
+            energy_images.x2.clone()
+        } else {
+            energy_images.x1.clone()
+        };
+        if img.image != new_handle {
+            img.image = new_handle;
+        }
     }
 }

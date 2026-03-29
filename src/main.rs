@@ -322,13 +322,26 @@ pub(crate) struct VersionPopupOpen {
     pub(crate) open: bool,
 }
 
-/// Tag for the ×1 energy-multiplier button in the board HUD row 2.
+/// Tag for the single energy-multiplier toggle button in the board HUD row 2.
+///
+/// Clicking cycles between ×1 and ×2 stamina consumption.
 #[derive(Component)]
-pub(crate) struct EnergyX1Button;
+pub(crate) struct EnergyToggleButton;
 
-/// Tag for the ×2 energy-multiplier button in the board HUD row 2.
+/// Tag for the image node inside [`EnergyToggleButton`].
+///
+/// The visual system swaps its [`ImageNode`] handle to reflect the current
+/// [`DoubleStaminaMode`] state.
 #[derive(Component)]
-pub(crate) struct EnergyX2Button;
+pub(crate) struct EnergyToggleImage;
+
+/// Holds the two energy-icon image handles so the visual system can swap them
+/// without calling [`AssetServer::load`] every frame.
+#[derive(Resource, Default)]
+pub(crate) struct EnergyButtonImages {
+    pub(crate) x1: Handle<Image>,
+    pub(crate) x2: Handle<Image>,
+}
 
 // ── Idle / Attract-animation resources ───────────────────────────────────────
 
@@ -443,6 +456,7 @@ fn main() {
     .insert_resource(VersionPopupOpen::default())
     .init_resource::<PreloadedImages>()
     .init_resource::<GameAudio>()
+    .init_resource::<EnergyButtonImages>()
     .init_state::<GameScreen>()
     .add_systems(Startup, preload_images)
     .add_systems(Startup, setup_initial_board)

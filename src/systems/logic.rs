@@ -3,8 +3,8 @@ use bevy::prelude::*;
 
 use crate::{
     ActivityButton, ActivityIconsContainer, ActivityIconsHidden, AutoGenCooldowns, AutoGenCounts,
-    AutoGenTimers, DoubleStaminaButton, DoubleStaminaMode, EggStorage, EnergyX1Button,
-    EnergyX2Button, EnterBoardButton, GameAudio, GameScreen, GeneratorUsesRemaining,
+    AutoGenTimers, DoubleStaminaButton, DoubleStaminaMode, EggStorage, EnergyToggleButton,
+    EnterBoardButton, GameAudio, GameScreen, GeneratorUsesRemaining,
     HideActivityButton, JellyClickAnim, MessageBar, SettingsCenterButton, SettingsDropdown,
     SettingsDropdownOpen, SettingsOptionButton, VersionInfoPopup, VersionPopupOpen,
     JELLY_CLICK_DURATION, SECONDS_PER_MINUTE, AUTO_GEN_BATCH_LIMIT, AUTO_GEN_COOLDOWN_SECS,
@@ -429,26 +429,20 @@ pub(crate) fn handle_order_submit(
     }
 }
 
-/// Toggle the double-stamina mode when the button in the top-right corner is pressed.
+/// Toggle the double-stamina mode when the energy button in the board HUD is pressed.
 pub(crate) fn handle_double_stamina_toggle(
     mut mode: ResMut<DoubleStaminaMode>,
     interaction_query: Query<&Interaction, (Changed<Interaction>, With<DoubleStaminaButton>)>,
-    x1_query: Query<&Interaction, (Changed<Interaction>, With<EnergyX1Button>)>,
-    x2_query: Query<&Interaction, (Changed<Interaction>, With<EnergyX2Button>)>,
+    toggle_query: Query<&Interaction, (Changed<Interaction>, With<EnergyToggleButton>)>,
 ) {
     for interaction in &interaction_query {
         if *interaction == Interaction::Pressed {
             mode.active = !mode.active;
         }
     }
-    for interaction in &x1_query {
+    for interaction in &toggle_query {
         if *interaction == Interaction::Pressed {
-            mode.active = false;
-        }
-    }
-    for interaction in &x2_query {
-        if *interaction == Interaction::Pressed {
-            mode.active = true;
+            mode.active = !mode.active;
         }
     }
 }
