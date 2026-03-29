@@ -6,6 +6,7 @@
 //! Auto-generator pieces (老母鸡) produce child pieces automatically over time.
 //! Fulfill orders by submitting the required items to earn coins.
 
+mod audio;
 mod board;
 mod config;
 mod economy;
@@ -33,99 +34,8 @@ use ui::{
     teardown_activity_screen, teardown_board_screen,
 };
 
-// ── Audio ─────────────────────────────────────────────────────────────────────
-
-/// Holds pre-loaded [`Handle<AudioSource>`] values for every SFX entry in `audio.csv`.
-///
-/// Populated at startup by [`setup_audio`]; systems that want to play a sound
-/// look up the code (e.g. `"button_click"`) and spawn an [`AudioPlayer`] entity
-/// with [`PlaybackSettings::DESPAWN`].
-#[derive(Resource, Default)]
-pub(crate) struct GameAudio {
-    pub(crate) sounds: std::collections::HashMap<String, Handle<AudioSource>>,
-}
-
-impl GameAudio {
-    /// Return the handle for the given audio code, if it was loaded.
-    pub(crate) fn get(&self, code: &str) -> Option<Handle<AudioSource>> {
-        self.sounds.get(code).cloned()
-    }
-
-    /// Return the merge sound for a piece that produces a result at `result_level`.
-    ///
-    /// Tries `merge_lv{result_level}` first; falls back to `merge_lv9`.
-    pub(crate) fn merge_sfx(&self, result_level: u32) -> Option<Handle<AudioSource>> {
-        let code = format!("merge_lv{result_level}");
-        self.get(&code).or_else(|| self.get("merge_lv9"))
-    }
-}
-
-/// Startup system: pre-load every audio asset listed in `audio.csv` (except the
-/// BGM which is handled by [`setup_bgm`]).  Handles are stored in [`GameAudio`]
-/// so that SFX systems can look them up by code without touching the asset server.
-fn setup_audio(
-    asset_server: Res<AssetServer>,
-    mut game_audio: ResMut<GameAudio>,
-) {
-    for def in config::load_audio() {
-        let handle: Handle<AudioSource> = asset_server.load(def.audio_path.clone());
-        game_audio.sounds.insert(def.audio_code, handle);
-    }
-}
-
-/// Marker component for the background-music entity so we can query it later.
-#[derive(Component)]
-struct BgmSink;
-
-/// Spawns the looping background-music entity as soon as the game starts.
-///
-/// On WASM, browsers block audio autoplay until the user interacts with the
-/// page, so the sink is started in a paused state and resumed by
-/// [`unlock_bgm_on_interaction`] on the first input event.
-fn setup_bgm(asset_server: Res<AssetServer>, mut commands: Commands) {
-    let bgm_path = config::load_audio()
-        .into_iter()
-        .find(|a| a.audio_code == "bgm_main")
-        .map(|a| a.audio_path)
-        .unwrap_or_else(|| "audio/bgm_SpringFestival_V1.wav".to_string());
-
-    commands.spawn((
-        BgmSink,
-        AudioPlayer::new(asset_server.load(bgm_path)),
-        #[cfg(not(target_arch = "wasm32"))]
-        PlaybackSettings::LOOP,
-        #[cfg(target_arch = "wasm32")]
-        PlaybackSettings {
-            mode: bevy::audio::PlaybackMode::Loop,
-            paused: true,
-            ..default()
-        },
-    ));
-}
-
-/// WASM only: resumes the background music on the first mouse-click, key-press,
-/// or touch-start event, working around browsers' autoplay policy.
-#[cfg(target_arch = "wasm32")]
-fn unlock_bgm_on_interaction(
-    mut unlocked: Local<bool>,
-    sinks: Query<&AudioSink, With<BgmSink>>,
-    mouse: Res<ButtonInput<MouseButton>>,
-    keys: Res<ButtonInput<KeyCode>>,
-    touches: Res<Touches>,
-) {
-    if *unlocked {
-        return;
-    }
-    let interacted = mouse.get_just_pressed().next().is_some()
-        || keys.get_just_pressed().next().is_some()
-        || touches.iter_just_pressed().next().is_some();
-    if interacted {
-        for sink in &sinks {
-            sink.play();
-        }
-        *unlocked = true;
-    }
-}
+// Re-export audio types so that other modules can reference them via `crate::GameAudio`.
+pub(crate) use audio::GameAudio;
 
 // ── System sets ───────────────────────────────────────────────────────────────
 
@@ -482,8 +392,8 @@ fn main() {
     .add_systems(Startup, preload_images)
     .add_systems(Startup, setup_initial_board)
     .add_systems(Startup, setup_camera)
-    .add_systems(Startup, setup_bgm)
-    .add_systems(Startup, setup_audio)
+    .add_systems(Startup, audio::setup_bgm)
+    .add_systems(Startup, audio::setup_audio)
     // Activity screen lifecycle
     .add_systems(OnEnter(GameScreen::Activity), setup_activity_screen)
     .add_systems(OnExit(GameScreen::Activity), teardown_activity_screen)
@@ -496,7 +406,7 @@ fn main() {
     // On WASM, resume the paused BGM on the first user interaction to work
     // around browsers' autoplay policy.
     #[cfg(target_arch = "wasm32")]
-    app.add_systems(Update, unlock_bgm_on_interaction);
+    app.add_systems(Update, audio::unlock_bgm_on_interaction);
     app
         // Logic systems run first; visual systems run after, ensuring change-detection
         // guards in visual systems always observe the latest game state.
